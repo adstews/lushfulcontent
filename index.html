@@ -112,15 +112,211 @@
   .hero-btn:hover { background: var(--accent-dark); }
   .hero-image {
     width: 420px;
-    height: 480px;
+    flex-shrink: 0;
+  }
+
+  /* ── BEFORE/AFTER GATE ── */
+  .ba-gate {
     background: var(--dark-brown);
     border-radius: 16px;
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: center;
+    padding: 40px 24px;
+  }
+  .ba-gate:hover { background: #4a4240; }
+  .ba-gate-icon { font-size: 48px; margin-bottom: 16px; }
+  .ba-gate h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .ba-gate p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 24px;
+  }
+  .ba-gate-btn {
+    background: #c0392b;
+    color: #fff;
+    border: none;
+    padding: 14px 36px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.2s;
+  }
+  .ba-gate-btn:hover { background: #a93226; }
+
+  /* ── BEFORE/AFTER CAROUSEL ── */
+  .ba-carousel {
+    display: none;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    background: var(--dark-brown);
+    min-height: 480px;
+  }
+  .ba-carousel.active { display: block; }
+  .ba-track {
+    display: flex;
+    transition: transform 0.3s ease;
+  }
+  .ba-slide {
+    min-width: 100%;
+    aspect-ratio: 7/8;
+    background: #2a2625;
     display: flex;
     align-items: center;
     justify-content: center;
     color: rgba(255,255,255,0.3);
     font-size: 14px;
     font-style: italic;
+  }
+  .ba-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .ba-prev, .ba-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid var(--border);
+    color: var(--dark);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    z-index: 2;
+  }
+  .ba-prev { left: 12px; }
+  .ba-next { right: 12px; }
+  .ba-prev:hover, .ba-next:hover { background: #fff; }
+  .ba-dots {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+  }
+  .ba-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+  }
+  .ba-dot.active { background: var(--accent); }
+
+  /* ── BEFORE/AFTER MODAL ── */
+  .ba-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .ba-modal-overlay.active { display: flex; }
+  .ba-modal {
+    background: #fff;
+    border-radius: 20px;
+    padding: 40px 32px;
+    max-width: 440px;
+    width: 100%;
+    position: relative;
+    text-align: center;
+    animation: fadeUp 0.3s ease;
+  }
+  .ba-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-light);
+    cursor: pointer;
+  }
+  .ba-modal h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--dark);
+    margin-bottom: 12px;
+  }
+  .ba-modal > p {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+  .ba-modal label {
+    display: block;
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-light);
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .ba-modal input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 16px;
+    outline: none;
+    background: var(--warm-white);
+    transition: border-color 0.2s;
+  }
+  .ba-modal input:focus { border-color: var(--dark); background: #fff; }
+  .ba-modal-submit {
+    width: 100%;
+    padding: 16px;
+    background: var(--dark);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.2s;
+    margin-top: 4px;
+  }
+  .ba-modal-submit:hover { background: #2a3a2d; }
+  .ba-modal-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .ba-consent {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-top: 16px;
+    line-height: 1.5;
   }
 
   /* ── TRUST BAR ── */
@@ -428,7 +624,9 @@
   @media (max-width: 900px) {
     .hero { flex-direction: column; padding: 60px 24px 80px; gap: 40px; }
     .hero h1 { font-size: 36px; }
-    .hero-image { width: 100%; height: 300px; }
+    .hero-image { width: 100%; }
+    .ba-gate { min-height: 360px; }
+    .ba-carousel { min-height: 360px; }
     .steps { grid-template-columns: repeat(2, 1fr); }
     .benefits-grid { grid-template-columns: 1fr; }
     .testimonials-grid { grid-template-columns: 1fr; }
@@ -461,7 +659,49 @@
     <p>GirthFill&trade; by Lushful Aesthetics uses FDA-approved hyaluronic acid filler to increase penile girth by 1-2 inches. No surgery. No downtime. Performed by one of the most experienced injectors in the country.</p>
     <button class="hero-btn" onclick="window.open('girthfill-form.html','_blank')">Book a Free Consultation</button>
   </div>
-  <div class="hero-image">[Hero Image Placeholder]</div>
+  <div class="hero-image">
+    <!-- GATE CARD -->
+    <div class="ba-gate" id="baGate" onclick="openBaModal()">
+      <div class="ba-gate-icon">&#128065;</div>
+      <h3>Before &amp; After Photos</h3>
+      <p>Age verification required to view</p>
+      <button class="ba-gate-btn">Click to View</button>
+    </div>
+
+    <!-- CAROUSEL (hidden until form submitted) -->
+    <div class="ba-carousel" id="baCarousel">
+      <div class="ba-track" id="baTrack">
+        <div class="ba-slide">[Before &amp; After Case 1]</div>
+        <div class="ba-slide">[Before &amp; After Case 2]</div>
+        <div class="ba-slide">[Before &amp; After Case 3]</div>
+        <div class="ba-slide">[Before &amp; After Case 4]</div>
+        <div class="ba-slide">[Before &amp; After Case 5]</div>
+        <div class="ba-slide">[Before &amp; After Case 6]</div>
+      </div>
+      <button class="ba-prev" onclick="slideBa(-1)">&#8249;</button>
+      <button class="ba-next" onclick="slideBa(1)">&#8250;</button>
+      <div class="ba-dots" id="baDots"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BEFORE/AFTER MODAL -->
+<div class="ba-modal-overlay" id="baModal">
+  <div class="ba-modal">
+    <button class="ba-modal-close" onclick="closeBaModal()">&times;</button>
+    <h2>Are you 18 or over?</h2>
+    <p>Before and after images may contain sensitive content. Please verify your age and provide your contact information to view.</p>
+    <form id="baForm" onsubmit="submitBaForm(event)">
+      <label for="baName">Full Name</label>
+      <input type="text" id="baName" placeholder="John Smith" required>
+      <label for="baEmail">Email Address</label>
+      <input type="email" id="baEmail" placeholder="your@email.com" required>
+      <label for="baPhone">Phone Number</label>
+      <input type="tel" id="baPhone" placeholder="(555) 123-4567" required>
+      <button type="submit" class="ba-modal-submit" id="baSubmitBtn">View Photos</button>
+    </form>
+    <p class="ba-consent">We will never sell your information. By submitting you confirm you are over 18 and agree to be contacted about GirthFill.</p>
+  </div>
 </div>
 
 <!-- TRUST BAR -->
@@ -693,6 +933,80 @@
 <script>
   function toggleFaq(el) {
     el.classList.toggle('open');
+  }
+
+  /* ── Before/After Modal ── */
+  function openBaModal() {
+    document.getElementById('baModal').classList.add('active');
+  }
+  function closeBaModal() {
+    document.getElementById('baModal').classList.remove('active');
+  }
+  // Close modal on overlay click
+  document.getElementById('baModal').addEventListener('click', function(e) {
+    if (e.target === this) closeBaModal();
+  });
+
+  /* ── Form Submit → Reveal Carousel ── */
+  function submitBaForm(e) {
+    e.preventDefault();
+    var btn = document.getElementById('baSubmitBtn');
+    var name = document.getElementById('baName').value.trim();
+    var email = document.getElementById('baEmail').value.trim();
+    var phone = document.getElementById('baPhone').value.trim();
+    if (!name || !email || !phone) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Loading...';
+
+    // Log lead (replace with your webhook/backend endpoint)
+    console.log('B&A Lead:', { name: name, email: email, phone: phone });
+
+    // Reveal carousel
+    setTimeout(function() {
+      revealCarousel();
+    }, 600);
+  }
+
+  function revealCarousel() {
+    document.getElementById('baModal').classList.remove('active');
+    document.getElementById('baGate').style.display = 'none';
+    document.getElementById('baCarousel').classList.add('active');
+    buildDots();
+  }
+
+  /* ── Carousel Navigation ── */
+  var baIndex = 0;
+  var baTotal = document.querySelectorAll('.ba-slide').length;
+
+  function slideBa(dir) {
+    baIndex = (baIndex + dir + baTotal) % baTotal;
+    updateCarousel();
+  }
+
+  function goToBaSlide(i) {
+    baIndex = i;
+    updateCarousel();
+  }
+
+  function updateCarousel() {
+    document.getElementById('baTrack').style.transform = 'translateX(-' + (baIndex * 100) + '%)';
+    var dots = document.querySelectorAll('.ba-dot');
+    dots.forEach(function(d, i) {
+      d.classList.toggle('active', i === baIndex);
+    });
+  }
+
+  function buildDots() {
+    var container = document.getElementById('baDots');
+    container.innerHTML = '';
+    for (var i = 0; i < baTotal; i++) {
+      var dot = document.createElement('button');
+      dot.className = 'ba-dot' + (i === 0 ? ' active' : '');
+      dot.setAttribute('data-i', i);
+      dot.onclick = function() { goToBaSlide(parseInt(this.getAttribute('data-i'))); };
+      container.appendChild(dot);
+    }
   }
 </script>
 
