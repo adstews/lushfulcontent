@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GirthFill - Non-Surgical Penile Girth Enhancement | Lushful Aesthetics</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --dark: #1E2A21;
+    --dark-brown: #3B3230;
+    --cream: #F5F0EB;
+    --warm-white: #FAF8F5;
+    --accent: #C4A882;
+    --accent-dark: #A88B6A;
+    --text: #2C2826;
+    --text-light: #6B6560;
+    --border: #E8E2DB;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text);
+    background: var(--warm-white);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--dark);
+    padding: 18px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    color: #fff;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  .nav-links { display: flex; gap: 32px; align-items: center; }
+  .nav-links a {
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 400;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: #fff; }
+  .nav-cta {
+    background: transparent !important;
+    border: 1.5px solid rgba(255,255,255,0.5) !important;
+    color: #fff !important;
+    padding: 10px 24px !important;
+    border-radius: 50px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-cta:hover { background: rgba(255,255,255,0.1) !important; border-color: #fff !important; }
+
+  /* ── HERO ── */
+  .hero {
+    background: var(--dark);
+    padding: 80px 40px 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 80px;
+    min-height: 600px;
+  }
+  .hero-content { max-width: 560px; }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 52px;
+    font-weight: 500;
+    color: #fff;
+    line-height: 1.15;
+    margin-bottom: 20px;
+  }
+  .hero p {
+    color: rgba(255,255,255,0.7);
+    font-size: 18px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+    font-weight: 300;
+  }
+  .hero-btn {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--dark);
+    padding: 16px 40px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+  }
+  .hero-btn:hover { background: var(--accent-dark); }
+  .hero-image {
+    width: 420px;
+    height: 480px;
+    background: var(--dark-brown);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.3);
+    font-size: 14px;
+    font-style: italic;
+  }
+
+  /* ── TRUST BAR ── */
+  .trust-bar {
+    background: var(--cream);
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .trust-item {
+    text-align: center;
+  }
+  .trust-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--dark);
+  }
+  .trust-label {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  /* ── SECTIONS ── */
+  section { padding: 80px 40px; }
+  .section-center { max-width: 1100px; margin: 0 auto; }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+  .section-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px;
+    font-weight: 500;
+    color: var(--dark);
+    margin-bottom: 16px;
+  }
+  .section-header p {
+    font-size: 16px;
+    color: var(--text-light);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+  }
+  .step {
+    text-align: center;
+    padding: 32px 20px;
+  }
+  .step-number {
+    width: 48px;
+    height: 48px;
+    background: var(--dark);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 auto 20px;
+  }
+  .step h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--dark);
+  }
+  .step p {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.55;
+  }
+
+  /* ── BENEFITS ── */
+  .benefits-section { background: var(--cream); }
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .benefit-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 36px 28px;
+    border: 1px solid var(--border);
+  }
+  .benefit-icon {
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+  .benefit-card h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--dark);
+  }
+  .benefit-card p {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.55;
+  }
+
+  /* ── PRICING ── */
+  .pricing-card {
+    max-width: 600px;
+    margin: 0 auto;
+    background: var(--dark);
+    border-radius: 16px;
+    padding: 48px;
+    text-align: center;
+    color: #fff;
+  }
+  .pricing-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .pricing-amount {
+    font-size: 52px;
+    font-weight: 700;
+    margin: 16px 0 4px;
+    color: var(--accent);
+  }
+  .pricing-detail {
+    font-size: 15px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 24px;
+  }
+  .pricing-features {
+    text-align: left;
+    margin: 24px auto;
+    max-width: 360px;
+  }
+  .pricing-features li {
+    list-style: none;
+    padding: 8px 0;
+    font-size: 15px;
+    color: rgba(255,255,255,0.8);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .pricing-features li::before {
+    content: "\2713";
+    color: var(--accent);
+    margin-right: 12px;
+    font-weight: 700;
+  }
+
+  /* ── EXPERT ── */
+  .expert-section {
+    display: flex;
+    gap: 60px;
+    align-items: center;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .expert-photo {
+    width: 320px;
+    height: 400px;
+    background: var(--cream);
+    border-radius: 14px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-size: 14px;
+    font-style: italic;
+  }
+  .expert-content h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .expert-content .expert-title {
+    font-size: 14px;
+    color: var(--accent-dark);
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .expert-content p {
+    font-size: 15px;
+    color: var(--text-light);
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+
+  /* ── TESTIMONIALS ── */
+  .testimonials-section { background: var(--cream); }
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .testimonial-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 32px;
+    border: 1px solid var(--border);
+  }
+  .stars { color: var(--accent); font-size: 16px; margin-bottom: 12px; letter-spacing: 2px; }
+  .testimonial-card p {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+  .testimonial-card .name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark);
+  }
+
+  /* ── FAQ ── */
+  .faq-list { max-width: 750px; margin: 0 auto; }
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    cursor: pointer;
+  }
+  .faq-q {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .faq-q::after { content: "+"; font-size: 22px; color: var(--text-light); transition: transform 0.2s; }
+  .faq-item.open .faq-q::after { content: "\2212"; }
+  .faq-a {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.65;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding-top: 0;
+  }
+  .faq-item.open .faq-a { max-height: 300px; padding-top: 12px; }
+
+  /* ── CTA BANNER ── */
+  .cta-banner {
+    background: var(--dark);
+    padding: 60px 40px;
+    text-align: center;
+  }
+  .cta-banner h2 {
+    font-family: 'Playfair Display', serif;
+    color: #fff;
+    font-size: 36px;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+  .cta-banner p {
+    color: rgba(255,255,255,0.6);
+    font-size: 16px;
+    margin-bottom: 28px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--dark-brown);
+    padding: 40px;
+    text-align: center;
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+  }
+
+  /* ── PRESS LOGOS ── */
+  .press-section { background: var(--warm-white); padding: 50px 40px; }
+  .press-logos {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    flex-wrap: wrap;
+    align-items: center;
+    opacity: 0.4;
+  }
+  .press-logos span {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .hero { flex-direction: column; padding: 60px 24px 80px; gap: 40px; }
+    .hero h1 { font-size: 36px; }
+    .hero-image { width: 100%; height: 300px; }
+    .steps { grid-template-columns: repeat(2, 1fr); }
+    .benefits-grid { grid-template-columns: 1fr; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+    .expert-section { flex-direction: column; }
+    .nav-links { display: none; }
+    .press-logos { gap: 24px; }
+    .press-logos span { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Lushful Aesthetics</div>
+  <div class="nav-links">
+    <a href="#how-it-works">How It Works</a>
+    <a href="#benefits">Benefits</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#expert">Your Provider</a>
+    <a href="#faq">FAQ</a>
+    <a href="girthfill-form.html" target="_blank" rel="noopener" class="nav-cta">Book Consultation</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-content">
+    <h1>Non-Surgical Girth Enhancement That Looks and Feels Natural</h1>
+    <p>GirthFill&trade; by Lushful Aesthetics uses FDA-approved hyaluronic acid filler to increase penile girth by 1-2 inches. No surgery. No downtime. Performed by one of the most experienced injectors in the country.</p>
+    <button class="hero-btn" onclick="window.open('girthfill-form.html','_blank')">Book a Free Consultation</button>
+  </div>
+  <div class="hero-image">[Hero Image Placeholder]</div>
+</div>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-item">
+    <div class="trust-number">5,000+</div>
+    <div class="trust-label">Procedures Performed</div>
+  </div>
+  <div class="trust-item">
+    <div class="trust-number">1-2"</div>
+    <div class="trust-label">Average Girth Increase</div>
+  </div>
+  <div class="trust-item">
+    <div class="trust-number">FDA</div>
+    <div class="trust-label">Approved Filler Only</div>
+  </div>
+  <div class="trust-item">
+    <div class="trust-number">3+ Years</div>
+    <div class="trust-label">Results Duration</div>
+  </div>
+  <div class="trust-item">
+    <div class="trust-number">100%</div>
+    <div class="trust-label">Reversible</div>
+  </div>
+</div>
+
+<!-- PRESS -->
+<div class="press-section">
+  <div class="press-logos">
+    <span>GQ</span>
+    <span>VICE</span>
+    <span>Cosmopolitan</span>
+    <span>New York Post</span>
+    <span>The Late Show</span>
+    <span>Men's Health</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="section-center">
+    <div class="section-header">
+      <h2>How GirthFill&trade; Works</h2>
+      <p>A streamlined process designed for your comfort, confidence, and results.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Free Consultation</h3>
+        <p>Book a confidential consultation to discuss your goals, anatomy, and expected results with our expert team.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Personalized Plan</h3>
+        <p>Your provider creates a customized treatment plan based on your anatomy, baseline size, and desired outcome.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Treatment Day</h3>
+        <p>The procedure takes about 45 minutes with local anesthetic. Most patients report minimal discomfort.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <h3>Walk Out Enhanced</h3>
+        <p>Results are immediate. Light activity resumes in 1-2 days. Full results settle in 3-6 weeks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BENEFITS -->
+<section id="benefits" class="benefits-section">
+  <div class="section-center">
+    <div class="section-header">
+      <h2>Why Men Choose GirthFill&trade;</h2>
+    </div>
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div class="benefit-icon">&#9650;</div>
+        <h3>Increased Girth</h3>
+        <p>Add 1-2 inches of girth when both flaccid and erect. A 1-inch girth increase equals approximately 25% more thickness.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">&#9881;</div>
+        <h3>No Effect on Performance</h3>
+        <p>GirthFill does not impact erectile function or sensitivity. This is purely an aesthetic enhancement.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">&#8634;</div>
+        <h3>Fully Reversible</h3>
+        <p>Uses FDA-approved hyaluronic acid that naturally metabolizes over time and can be dissolved completely if desired.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">&#128337;</div>
+        <h3>Minimal Downtime</h3>
+        <p>Return to work in 1-2 days. Resume sexual activity after 2 weeks. Results last 2-3 years in the shaft.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">&#128170;</div>
+        <h3>Longer When Flaccid</h3>
+        <p>The added volume prevents full retraction when flaccid, giving you a visibly larger appearance at all times.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">&#10003;</div>
+        <h3>Natural Look and Feel</h3>
+        <p>The GirthFillosophy&reg; technique injects along the sides of the shaft for balanced, natural-appearing results.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-center">
+    <div class="section-header">
+      <h2>Transparent Pricing</h2>
+      <p>No hidden fees. Financing available through Cherry with soft credit checks.</p>
+    </div>
+    <div class="pricing-card">
+      <h3>GirthFill&trade; Treatment</h3>
+      <div class="pricing-amount">$8,500</div>
+      <div class="pricing-detail">Starting price for 10 syringes</div>
+      <ul class="pricing-features">
+        <li>10 syringes of FDA-approved hyaluronic acid filler</li>
+        <li>Typically adds 1-2 inches of girth</li>
+        <li>Additional syringes: $700 each</li>
+        <li>Results last 2-3 years</li>
+        <li>Performed by InjectorChris</li>
+        <li>Financing available through Cherry</li>
+      </ul>
+      <button class="hero-btn" onclick="window.open('girthfill-form.html','_blank')">Book a Free Consultation</button>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERT -->
+<section id="expert">
+  <div class="section-center">
+    <div class="expert-section">
+      <div class="expert-photo">[InjectorChris Photo]</div>
+      <div class="expert-content">
+        <h2>Chris Bustamante, DNP, NP-C</h2>
+        <div class="expert-title">Founder, Lushful Aesthetics &bull; InjectorChris</div>
+        <p>Chris Bustamante is a Doctorate-level Aesthetic Nurse Practitioner trained at Columbia University. He is one of the most sought-after penile enhancement specialists in the world, performing GirthFill procedures multiple times daily.</p>
+        <p>Patients travel from across the US, Europe, the Middle East, and Australia specifically to see InjectorChris for his GirthFillosophy&reg; technique, which prioritizes anatomical harmony, natural contour, and personalized aesthetic goals.</p>
+        <p>He is also one of the few providers with extensive experience in both circumcised and uncircumcised patients, as well as complex revision cases from other providers.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials-section">
+  <div class="section-center">
+    <div class="section-header">
+      <h2>What Our Patients Say</h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p>"The process was so much easier than I expected. Chris made me feel comfortable from the first consultation. The results exceeded my expectations — I wish I had done this years ago."</p>
+        <div class="name">M.R. &bull; Verified Patient</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p>"I flew in from LA specifically for InjectorChris. Worth every mile. The technique is clearly refined — the results look and feel completely natural. My confidence is through the roof."</p>
+        <div class="name">T.K. &bull; Verified Patient</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p>"I had a bad experience with another provider and Chris completely fixed it. The revision work was incredible — no more lumps, completely smooth. He genuinely cares about the outcome."</p>
+        <div class="name">D.L. &bull; Verified Patient</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="section-center">
+    <div class="section-header">
+      <h2>Frequently Asked Questions</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Is the procedure painful?</div>
+        <div class="faq-a">Most patients report little to no pain thanks to local anesthetic. Laughing gas is also provided for anxiety relief. Patients are often surprised at how comfortable the procedure is.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">How long do results last?</div>
+        <div class="faq-a">Results last 2-3 years in the shaft and approximately 1 year in the glans. Most patients never fully return to their original baseline due to collagen formation. Touch-ups are typically scheduled every 12-18 months.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Does it affect erectile function or sensitivity?</div>
+        <div class="faq-a">No. GirthFill does not affect sensitivity or erection quality in any way. This is purely an aesthetic procedure.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Is it reversible?</div>
+        <div class="faq-a">Yes. Since we use hyaluronic acid filler, it can be dissolved completely if desired. The filler also naturally metabolizes over time.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">How much girth can I expect to gain?</div>
+        <div class="faq-a">Patients can expect to increase girth by 0.25 to 2 inches depending on the amount of filler used. A 1-inch increase in girth equals approximately a 25% increase in thickness for the average person.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">What is the recovery time?</div>
+        <div class="faq-a">Mild tenderness and swelling for a few days to two weeks. Work and light activity can resume in 1-2 days. No sexual activity for a minimum of 2 weeks.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Do I need to travel to NYC?</div>
+        <div class="faq-a">Lushful Aesthetics has locations in NYC and San Diego. Many patients travel from across the US and internationally. We provide a travel guide for out-of-town patients.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<div class="cta-banner">
+  <h2>Ready to Take the Next Step?</h2>
+  <p>Book a free, confidential consultation with our team.</p>
+  <button class="hero-btn" onclick="window.open('girthfill-form.html','_blank')">Book a Free Consultation</button>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p>&copy; 2026 Lushful Aesthetics. All rights reserved. | NYC &bull; San Diego</p>
+</footer>
+
+<script>
+  function toggleFaq(el) {
+    el.classList.toggle('open');
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Consultation | GirthFill by Lushful Aesthetics</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --dark: #1E2A21;
+    --dark-brown: #3B3230;
+    --cream: #F5F0EB;
+    --warm-white: #FAF8F5;
+    --accent: #C4A882;
+    --accent-dark: #A88B6A;
+    --text: #2C2826;
+    --text-light: #6B6560;
+    --border: #E8E2DB;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text);
+    background: var(--dark);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  /* ── LOGO ── */
+  .form-logo {
+    font-family: 'Playfair Display', serif;
+    color: #fff;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+
+  /* ── FORM CARD ── */
+  .form-card {
+    background: #fff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 520px;
+    padding: 48px 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: fadeUp 0.4s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 36px;
+  }
+  .progress-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .progress-dot.active { background: var(--dark); }
+
+  /* ── STEPS ── */
+  .form-step { display: none; }
+  .form-step.active { display: block; animation: fadeUp 0.35s ease; }
+
+  .form-step h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    color: var(--dark);
+  }
+  .form-step p {
+    font-size: 15px;
+    color: var(--text-light);
+    line-height: 1.65;
+    margin-bottom: 24px;
+  }
+  .highlight {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 4px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .btn-yes, .btn-no {
+    padding: 15px 44px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-yes { background: var(--dark); color: #fff; }
+  .btn-yes:hover { background: #2a3a2d; }
+  .btn-no { background: var(--cream); color: var(--text); }
+  .btn-no:hover { background: #ebe5de; }
+
+  /* ── FORM INPUTS ── */
+  .form-input {
+    width: 100%;
+    padding: 16px 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    background: var(--warm-white);
+  }
+  .form-input:focus { border-color: var(--dark); background: #fff; }
+
+  .form-submit {
+    width: 100%;
+    padding: 16px;
+    background: var(--dark);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .form-submit:hover { background: #2a3a2d; }
+
+  /* ── DISQUALIFIED ── */
+  .disqualified { color: var(--text-light); }
+  .disqualified h2 { margin-bottom: 12px; }
+  .disqualified .back-link {
+    display: inline-block;
+    margin-top: 24px;
+    color: var(--accent-dark);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+  }
+  .disqualified .back-link:hover { text-decoration: underline; }
+
+  /* ── CALENDLY PLACEHOLDER ── */
+  .calendly-placeholder {
+    background: var(--cream);
+    border-radius: 12px;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-light);
+    margin-top: 16px;
+  }
+
+  /* ── FOOTER TEXT ── */
+  .form-footer {
+    margin-top: 24px;
+    text-align: center;
+    color: rgba(255,255,255,0.35);
+    font-size: 12px;
+  }
+  .form-footer a {
+    color: rgba(255,255,255,0.5);
+    text-decoration: none;
+  }
+  .form-footer a:hover { text-decoration: underline; }
+
+  /* ── STEP LABEL ── */
+  .step-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-light);
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .form-card { padding: 36px 24px; }
+    .form-step h2 { font-size: 24px; }
+    .btn-group { flex-direction: column; }
+    .btn-yes, .btn-no { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="form-logo">Lushful Aesthetics</div>
+
+<div class="form-card">
+
+  <!-- ════════════════════════ -->
+  <!-- STEP 1: Qualification -->
+  <!-- ════════════════════════ -->
+  <div class="form-step active" id="step1">
+    <div class="progress-bar">
+      <div class="progress-dot active"></div>
+      <div class="progress-dot"></div>
+      <div class="progress-dot"></div>
+    </div>
+    <div class="step-label">Step 1 of 3</div>
+    <h2>Before We Begin</h2>
+    <p class="highlight">GirthFill is not covered by insurance.</p>
+    <p>Treatments start at <strong>$8,500 for 10 syringes</strong> and typically add <strong>1-2 inches of girth</strong>. Financing is available through Cherry.</p>
+    <p style="margin-bottom: 32px; font-weight: 600; color: var(--dark);">Are you still interested?</p>
+    <div class="btn-group">
+      <button class="btn-yes" onclick="goToStep(2)">Yes, I'm Interested</button>
+      <button class="btn-no" onclick="disqualify()">Not Right Now</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════ -->
+  <!-- STEP 2: Contact Info -->
+  <!-- ════════════════════════ -->
+  <div class="form-step" id="step2">
+    <div class="progress-bar">
+      <div class="progress-dot active"></div>
+      <div class="progress-dot active"></div>
+      <div class="progress-dot"></div>
+    </div>
+    <div class="step-label">Step 2 of 3</div>
+    <h2>Tell Us About Yourself</h2>
+    <p>We'll use this to confirm your consultation and send you prep instructions.</p>
+    <input type="text" class="form-input" placeholder="Full Name" id="formName">
+    <input type="email" class="form-input" placeholder="Email Address" id="formEmail">
+    <input type="tel" class="form-input" placeholder="Phone Number" id="formPhone">
+    <button class="form-submit" onclick="goToStep(3)">Continue to Booking</button>
+  </div>
+
+  <!-- ════════════════════════ -->
+  <!-- STEP 3: Calendly -->
+  <!-- ════════════════════════ -->
+  <div class="form-step" id="step3">
+    <div class="progress-bar">
+      <div class="progress-dot active"></div>
+      <div class="progress-dot active"></div>
+      <div class="progress-dot active"></div>
+    </div>
+    <div class="step-label">Step 3 of 3</div>
+    <h2>Book Your Consultation</h2>
+    <p>Choose a time that works for you. Consultations are free and confidential.</p>
+    <div class="calendly-placeholder">
+      <p style="font-size: 16px; font-weight: 500; color: var(--dark); margin-bottom: 8px;">[Calendly Embed Goes Here]</p>
+      <p style="font-size: 13px;">Replace this div with your Calendly inline embed code:</p>
+      <code style="display: block; margin-top: 12px; font-size: 11px; color: var(--text-light); background: #fff; padding: 12px; border-radius: 8px; text-align: left; word-break: break-all;">
+        &lt;div class="calendly-inline-widget" data-url="https://calendly.com/YOUR-LINK" style="min-width:320px;height:630px;"&gt;&lt;/div&gt;
+        &lt;script src="https://assets.calendly.com/assets/external/widget.js" async&gt;&lt;/script&gt;
+      </code>
+    </div>
+  </div>
+
+  <!-- ════════════════════════ -->
+  <!-- DISQUALIFIED -->
+  <!-- ════════════════════════ -->
+  <div class="form-step disqualified" id="stepDQ">
+    <h2>No Problem</h2>
+    <p>We understand GirthFill isn't for everyone right now. If you change your mind or have questions, feel free to reach out anytime.</p>
+    <p style="margin-top: 20px;"><strong>Call or text:</strong> (917) 277-3398</p>
+    <p><strong>Website:</strong> lushfulaesthetics.com</p>
+    <a href="javascript:void(0)" class="back-link" onclick="resetForm()">Start over</a>
+  </div>
+
+</div>
+
+<div class="form-footer">
+  <p>&copy; 2026 Lushful Aesthetics &bull; <a href="https://lushfulaesthetics.com">lushfulaesthetics.com</a></p>
+</div>
+
+<script>
+  function goToStep(n) {
+    if (n === 3) {
+      const name = document.getElementById('formName').value.trim();
+      const email = document.getElementById('formEmail').value.trim();
+      const phone = document.getElementById('formPhone').value.trim();
+      if (!name || !email || !phone) {
+        alert('Please fill in all fields.');
+        return;
+      }
+      // You can send the lead data here via fetch() to your backend/webhook
+      console.log('Lead captured:', { name, email, phone });
+    }
+    document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step' + n).classList.add('active');
+  }
+
+  function disqualify() {
+    document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('stepDQ').classList.add('active');
+  }
+
+  function resetForm() {
+    document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step1').classList.add('active');
+    document.getElementById('formName').value = '';
+    document.getElementById('formEmail').value = '';
+    document.getElementById('formPhone').value = '';
+  }
+</script>
+
+</body>
+</html>
