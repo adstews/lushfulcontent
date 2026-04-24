@@ -154,28 +154,59 @@
   }
   .form-submit:hover { background: #2a3a2d; }
 
-  /* ── DISQUALIFIED ── */
-  .disqualified { color: var(--text-light); }
-  .disqualified h2 { margin-bottom: 12px; }
-  .disqualified .back-link {
-    display: inline-block;
-    margin-top: 24px;
-    color: var(--accent-dark);
+  /* ── OPTIONS (yes path) ── */
+  .option-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    background: var(--dark);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0;
     text-decoration: none;
-    font-weight: 500;
-    font-size: 14px;
-  }
-  .disqualified .back-link:hover { text-decoration: underline; }
-
-  /* ── CALENDLY PLACEHOLDER ── */
-  .calendly-placeholder {
-    background: var(--cream);
-    border-radius: 12px;
-    padding: 60px 20px;
     text-align: center;
-    color: var(--text-light);
-    margin-top: 16px;
+    transition: background 0.2s;
+    font-family: 'Inter', sans-serif;
   }
+  .option-btn:hover { background: #2a3a2d; }
+  .option-note {
+    font-size: 13px;
+    color: var(--text-light);
+    margin: 10px 0 22px;
+    line-height: 1.4;
+  }
+  .option-note:last-of-type { margin-bottom: 8px; }
+  .call-btn {
+    display: block;
+    padding: 14px 16px;
+    background: var(--cream);
+    color: var(--text);
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    margin-top: 12px;
+    line-height: 1.5;
+    transition: background 0.2s;
+  }
+  .call-btn:hover { background: #ebe5de; }
+  .call-btn strong { color: var(--dark); }
+
+  /* ── DISQUALIFIED / NO PATH ── */
+  .disqualified { color: var(--text-light); }
+  .disqualified h2 { margin-bottom: 12px; color: var(--dark); }
+  .disqualified p { margin-bottom: 20px; }
+  .disqualified .call-inline {
+    color: var(--dark);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .disqualified .call-inline:hover { text-decoration: underline; }
 
   /* ── FOOTER TEXT ── */
   .form-footer {
@@ -216,74 +247,69 @@
 <div class="form-card">
 
   <!-- ════════════════════════ -->
-  <!-- STEP 1: Qualification -->
+  <!-- STEP 1: Tell Us About Yourself -->
   <!-- ════════════════════════ -->
   <div class="form-step active" id="step1">
     <div class="progress-bar">
       <div class="progress-dot active"></div>
       <div class="progress-dot"></div>
-      <div class="progress-dot"></div>
     </div>
-    <div class="step-label">Step 1 of 3</div>
-    <h2>Before We Begin</h2>
-    <p class="highlight">GirthFill is not covered by insurance.</p>
-    <p>Treatments start at <strong>$8,500 for 10 syringes</strong> and typically add <strong>1-2 inches of girth</strong>. Financing is available through Cherry.</p>
-    <p style="margin-bottom: 32px; font-weight: 600; color: var(--dark);">Are you still interested?</p>
-    <div class="btn-group">
-      <button class="btn-yes" onclick="goToStep(2)">Yes, I'm Interested</button>
-      <button class="btn-no" onclick="disqualify()">Not Right Now</button>
-    </div>
+    <div class="step-label">Step 1 of 2</div>
+    <h2>Tell Us About Yourself</h2>
+    <p>We'll use this to reach out about your consultation.</p>
+    <input type="text" class="form-input" placeholder="Full Name" id="formName">
+    <input type="email" class="form-input" placeholder="Email Address" id="formEmail">
+    <input type="tel" class="form-input" placeholder="Phone Number" id="formPhone">
+    <button class="form-submit" onclick="goToStep(2)">Continue</button>
   </div>
 
   <!-- ════════════════════════ -->
-  <!-- STEP 2: Contact Info -->
+  <!-- STEP 2: Before We Begin -->
   <!-- ════════════════════════ -->
   <div class="form-step" id="step2">
     <div class="progress-bar">
       <div class="progress-dot active"></div>
       <div class="progress-dot active"></div>
-      <div class="progress-dot"></div>
     </div>
-    <div class="step-label">Step 2 of 3</div>
-    <h2>Tell Us About Yourself</h2>
-    <p>We'll use this to confirm your consultation and send you prep instructions.</p>
-    <input type="text" class="form-input" placeholder="Full Name" id="formName">
-    <input type="email" class="form-input" placeholder="Email Address" id="formEmail">
-    <input type="tel" class="form-input" placeholder="Phone Number" id="formPhone">
-    <button class="form-submit" onclick="goToStep(3)">Continue to Booking</button>
-  </div>
-
-  <!-- ════════════════════════ -->
-  <!-- STEP 3: Calendly -->
-  <!-- ════════════════════════ -->
-  <div class="form-step" id="step3">
-    <div class="progress-bar">
-      <div class="progress-dot active"></div>
-      <div class="progress-dot active"></div>
-      <div class="progress-dot active"></div>
-    </div>
-    <div class="step-label">Step 3 of 3</div>
-    <h2>Book Your Consultation</h2>
-    <p>Choose a time that works for you. Consultations are free and confidential.</p>
-    <div class="calendly-placeholder">
-      <p style="font-size: 16px; font-weight: 500; color: var(--dark); margin-bottom: 8px;">[Calendly Embed Goes Here]</p>
-      <p style="font-size: 13px;">Replace this div with your Calendly inline embed code:</p>
-      <code style="display: block; margin-top: 12px; font-size: 11px; color: var(--text-light); background: #fff; padding: 12px; border-radius: 8px; text-align: left; word-break: break-all;">
-        &lt;div class="calendly-inline-widget" data-url="https://calendly.com/YOUR-LINK" style="min-width:320px;height:630px;"&gt;&lt;/div&gt;
-        &lt;script src="https://assets.calendly.com/assets/external/widget.js" async&gt;&lt;/script&gt;
-      </code>
+    <div class="step-label">Step 2 of 2</div>
+    <h2>Before We Begin</h2>
+    <p class="highlight">GirthFill is not covered by insurance.</p>
+    <p>Treatments start at <strong>$8,500 for 10 syringes</strong> and typically add <strong>1-2 inches of girth</strong>. Financing is available through Cherry.</p>
+    <p style="margin-bottom: 32px; font-weight: 600; color: var(--dark);">Are you still interested?</p>
+    <div class="btn-group">
+      <button class="btn-yes" onclick="showOptions()">Yes, I'm Interested</button>
+      <button class="btn-no" onclick="showNoThanks()">Not Right Now</button>
     </div>
   </div>
 
   <!-- ════════════════════════ -->
-  <!-- DISQUALIFIED -->
+  <!-- STEP 3 (YES): Options -->
   <!-- ════════════════════════ -->
-  <div class="form-step disqualified" id="stepDQ">
+  <div class="form-step" id="stepOptions">
+    <h2>Great! Here are your options:</h2>
+    <p style="margin-bottom: 28px;">Choose the next step that works best for you.</p>
+
+    <a href="https://www.joinblvd.com/b/lushful-aesthetics/widget#/locations"
+       class="option-btn" target="_blank" rel="noopener">Book An Appointment</a>
+    <p class="option-note">$1,000 Deposit, applied to procedure</p>
+
+    <a href="https://www.joinblvd.com/b/lushful-aesthetics/widget#/locations"
+       class="option-btn" target="_blank" rel="noopener">Schedule A Call</a>
+    <p class="option-note">$300 Deposit, applied to procedure</p>
+
+    <a href="tel:+19172773398" class="call-btn">
+      You can also call our office to discuss details.<br>
+      <strong>(917) 277-3398</strong>
+    </a>
+  </div>
+
+  <!-- ════════════════════════ -->
+  <!-- STEP 4 (NO): Mailing list -->
+  <!-- ════════════════════════ -->
+  <div class="form-step disqualified" id="stepNoThanks">
     <h2>No Problem</h2>
-    <p>We understand GirthFill isn't for everyone right now. If you change your mind or have questions, feel free to reach out anytime.</p>
-    <p style="margin-top: 20px;"><strong>Call or text:</strong> (917) 277-3398</p>
-    <p><strong>Website:</strong> lushfulaesthetics.com</p>
-    <a href="javascript:void(0)" class="back-link" onclick="resetForm()">Start over</a>
+    <p>We'll add you to our mailing list and keep you updated. You can also call our office anytime at <a href="tel:+19172773398" class="call-inline">(917) 277-3398</a>.</p>
+    <a href="https://lushfulaesthetics.com" class="option-btn" style="margin-top: 8px;">Visit Our Homepage</a>
   </div>
 
 </div>
@@ -293,8 +319,14 @@
 </div>
 
 <script>
+  function showStep(id) {
+    document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function goToStep(n) {
-    if (n === 3) {
+    if (n === 2) {
       const name = document.getElementById('formName').value.trim();
       const email = document.getElementById('formEmail').value.trim();
       const phone = document.getElementById('formPhone').value.trim();
@@ -302,25 +334,14 @@
         alert('Please fill in all fields.');
         return;
       }
-      // You can send the lead data here via fetch() to your backend/webhook
+      // Lead data captured — wire to backend/webhook here when available.
       console.log('Lead captured:', { name, email, phone });
     }
-    document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
-    document.getElementById('step' + n).classList.add('active');
+    showStep('step' + n);
   }
 
-  function disqualify() {
-    document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
-    document.getElementById('stepDQ').classList.add('active');
-  }
-
-  function resetForm() {
-    document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
-    document.getElementById('step1').classList.add('active');
-    document.getElementById('formName').value = '';
-    document.getElementById('formEmail').value = '';
-    document.getElementById('formPhone').value = '';
-  }
+  function showOptions() { showStep('stepOptions'); }
+  function showNoThanks() { showStep('stepNoThanks'); }
 </script>
 
 </body>
