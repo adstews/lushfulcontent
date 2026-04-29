@@ -10,8 +10,8 @@ The Lushful Aesthetics GirthFill landing site (`start.lushfulaesthetics.com`) cu
 ## Goals
 
 1. Persist every lead to Supabase as the source of truth.
-2. Sync each lead to Mailchimp for email nurture.
-3. Sync each lead to Close CRM for sales follow-up.
+2. Sync every lead to Mailchimp for email nurture.
+3. Sync **consultation-form leads only** to Close CRM for sales follow-up. Carousel leads stay out of the sales pipeline.
 4. Capture full attribution (UTM params, click IDs, referrer) so leads can be tied back to the campaign that produced them.
 5. Capture the qualification answer ($8,500 yes/no) on the consultation form.
 6. Capture which booking CTA was clicked when a qualified lead proceeds.
@@ -35,8 +35,10 @@ The site stays a static HTML site on Vercel. We add two Vercel Serverless Functi
 Browser POST /api/lead { name, email, phone, source, ...attribution }
   → Supabase: upsert into leads (unique on email + source)
   → Mailchimp: PUT subscriber (upsert), tag girthfill-landing or girthfill-carousel
-  → Close: POST lead, store close_lead_id back to Supabase
-  → Persist mailchimp_subscriber_hash + close_lead_id in leads row
+  → Close: POST lead — ONLY if source === 'girthfill-landing'
+           (carousel leads are low-intent and skip Close to keep the sales
+            pipeline clean)
+  → Persist mailchimp_subscriber_hash (always) and close_lead_id (consultation only)
   → Respond { lead_id }
 Browser stores lead_id in memory, advances form
 ```
@@ -152,6 +154,8 @@ create table lead_sync_errors (
 
 ## Close CRM Behavior
 
+**Scope:** Close sync runs **only for consultation-form leads** (`source === 'girthfill-landing'`). Carousel leads (`source === 'girthfill-carousel'`) are intent-light — they just want to see before/after photos — so we keep them in Supabase + Mailchimp only. Sending them to Close would clutter the sales pipeline with leads who never asked to talk to anyone.
+
 **Lead structure:** B2C, one person = one Close Lead with one Contact attached.
 
 **Endpoints:**
@@ -221,8 +225,10 @@ body: {
 
 1. Validate body with Zod. Reject 400 on bad input.
 2. Upsert into `leads` (on conflict `(email, source)`, update mutable fields). Return existing or new `lead_id`.
-3. In parallel: try Mailchimp upsert + tag, try Close create. Use `Promise.allSettled` so one failure doesn't cancel the other.
-4. Persist `mailchimp_subscriber_hash` and `close_lead_id` back to the row (best-effort).
+3. In parallel via `Promise.allSettled`:
+   - Mailchimp upsert + tag (always)
+   - Close create — **only if `source === 'girthfill-landing'`**; skipped for carousel
+4. Persist `mailchimp_subscriber_hash` (always) and `close_lead_id` (consultation only) back to the row.
 5. For each failure, insert a row into `lead_sync_errors`.
 6. Respond `{ lead_id }`.
 
