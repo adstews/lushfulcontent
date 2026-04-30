@@ -66,15 +66,18 @@ export default async function handler(req, res) {
     .eq('id', body.lead_id)
   if (updateErr) {
     console.error('supabase update failed', updateErr)
-    await sb.from('lead_sync_errors').insert({
-      lead_id: body.lead_id,
-      service: 'supabase',
-      operation: 'update',
-      error_message: updateErr.message,
-      payload: body
-    }).catch(insertErr => {
-      console.error('lead_sync_errors insert failed', insertErr)
-    })
+    try {
+      const { error: insertErr } = await sb.from('lead_sync_errors').insert({
+        lead_id: body.lead_id,
+        service: 'supabase',
+        operation: 'update',
+        error_message: updateErr.message,
+        payload: body
+      })
+      if (insertErr) console.error('lead_sync_errors insert failed', insertErr)
+    } catch (insertErr) {
+      console.error('lead_sync_errors insert threw', insertErr)
+    }
   }
 
   // 2. Best-effort fanout
@@ -128,15 +131,18 @@ export default async function handler(req, res) {
       const err = r.reason
       console.error('sync failed', err)
       const service = err?.service ?? 'unknown'
-      await sb.from('lead_sync_errors').insert({
-        lead_id: body.lead_id,
-        service,
-        operation: 'update',
-        error_message: String(err?.message || err),
-        payload: body
-      }).catch(insertErr => {
-        console.error('lead_sync_errors insert failed', insertErr)
-      })
+      try {
+        const { error: insertErr } = await sb.from('lead_sync_errors').insert({
+          lead_id: body.lead_id,
+          service,
+          operation: 'update',
+          error_message: String(err?.message || err),
+          payload: body
+        })
+        if (insertErr) console.error('lead_sync_errors insert failed', insertErr)
+      } catch (insertErr) {
+        console.error('lead_sync_errors insert threw', insertErr)
+      }
     }
   }
 

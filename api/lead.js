@@ -146,15 +146,18 @@ export default async function handler(req, res) {
       const err = r.reason
       console.error('sync failed', err)
       const service = err?.service ?? 'unknown'
-      await sb.from('lead_sync_errors').insert({
-        lead_id: leadId,
-        service,
-        operation: 'create',
-        error_message: String(err?.message || err),
-        payload: body
-      }).catch(insertErr => {
-        console.error('lead_sync_errors insert failed', insertErr)
-      })
+      try {
+        const { error: insertErr } = await sb.from('lead_sync_errors').insert({
+          lead_id: leadId,
+          service,
+          operation: 'create',
+          error_message: String(err?.message || err),
+          payload: body
+        })
+        if (insertErr) console.error('lead_sync_errors insert failed', insertErr)
+      } catch (insertErr) {
+        console.error('lead_sync_errors insert threw', insertErr)
+      }
     }
   }
 
