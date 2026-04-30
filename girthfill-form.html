@@ -238,7 +238,16 @@
     .btn-group { flex-direction: column; }
     .btn-yes, .btn-no { width: 100%; }
   }
+
+  .consent-line {
+    font-size: 0.75rem;
+    color: rgba(245, 240, 235, 0.65);
+    text-align: center;
+    margin-top: 0.75rem;
+    line-height: 1.4;
+  }
 </style>
+<script src="/js/attribution.js"></script>
 </head>
 <body>
 
@@ -260,7 +269,9 @@
     <input type="text" class="form-input" placeholder="Full Name" id="formName">
     <input type="email" class="form-input" placeholder="Email Address" id="formEmail">
     <input type="tel" class="form-input" placeholder="Phone Number" id="formPhone">
-    <button class="form-submit" onclick="goToStep(2)">Continue</button>
+    <div id="formError" style="color: #c44; font-size: 0.85rem; min-height: 1.2em; margin-bottom: 0.5rem;"></div>
+    <button class="form-submit" onclick="submitStep1(event)">Continue</button>
+    <p class="consent-line">By submitting you agree to receive occasional emails from Lushful Aesthetics. Unsubscribe anytime.</p>
   </div>
 
   <!-- ════════════════════════ -->
@@ -277,8 +288,8 @@
     <p>Treatments start at <strong>$8,500 for 10 syringes</strong> and typically add <strong>1-2 inches of girth</strong>. Financing is available through Cherry.</p>
     <p style="margin-bottom: 32px; font-weight: 600; color: var(--dark);">Are you still interested?</p>
     <div class="btn-group">
-      <button class="btn-yes" onclick="showOptions()">Yes, I'm Interested</button>
-      <button class="btn-no" onclick="showNoThanks()">Not Right Now</button>
+      <button class="btn-yes" onclick="answerQualification(true)">Yes, I'm Interested</button>
+      <button class="btn-no" onclick="answerQualification(false)">Not Right Now</button>
     </div>
   </div>
 
@@ -290,14 +301,17 @@
     <p style="margin-bottom: 28px;">Choose the next step that works best for you.</p>
 
     <a href="https://www.joinblvd.com/b/lushful-aesthetics/widget#/locations"
-       class="option-btn" target="_blank" rel="noopener">Book An Appointment</a>
+       class="option-btn" target="_blank" rel="noopener"
+       onclick="recordCta('book')">Book An Appointment</a>
     <p class="option-note">$1,000 Deposit, applied to procedure</p>
 
     <a href="https://www.joinblvd.com/b/lushful-aesthetics/widget#/locations"
-       class="option-btn" target="_blank" rel="noopener">Schedule A Call</a>
+       class="option-btn" target="_blank" rel="noopener"
+       onclick="recordCta('call')">Schedule A Call</a>
     <p class="option-note">$300 Deposit, applied to procedure</p>
 
-    <a href="tel:+19172773398" class="call-btn">
+    <a href="tel:+19172773398" class="call-btn"
+       onclick="recordCta('tap-to-call')">
       You can also call our office to discuss details.<br>
       <strong>(917) 277-3398</strong>
     </a>
@@ -325,23 +339,82 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function goToStep(n) {
-    if (n === 2) {
-      const name = document.getElementById('formName').value.trim();
-      const email = document.getElementById('formEmail').value.trim();
-      const phone = document.getElementById('formPhone').value.trim();
-      if (!name || !email || !phone) {
-        alert('Please fill in all fields.');
-        return;
-      }
-      // Lead data captured — wire to backend/webhook here when available.
-      console.log('Lead captured:', { name, email, phone });
-    }
-    showStep('step' + n);
+  function showError(msg) {
+    var el = document.getElementById('formError');
+    if (el) el.textContent = msg;
   }
 
-  function showOptions() { showStep('stepOptions'); }
-  function showNoThanks() { showStep('stepNoThanks'); }
+  async function submitStep1(event) {
+    event.preventDefault();
+    var name  = document.getElementById('formName').value.trim();
+    var email = document.getElementById('formEmail').value.trim();
+    var phone = document.getElementById('formPhone').value.trim();
+    if (!name || !email || !phone) {
+      showError('Please fill in all fields.');
+      return;
+    }
+
+    var btn = document.querySelector('#step1 button.form-submit');
+    var originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+      var attribution = window.lushfulAttribution ? window.lushfulAttribution() : {};
+      var body = Object.assign(
+        { name: name, email: email, phone: phone, source: 'girthfill-landing' },
+        attribution
+      );
+      var res = await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('lead-post-failed:' + res.status);
+      var data = await res.json();
+      window.__leadId = data.lead_id;
+      showStep('step2');
+    } catch (err) {
+      console.error('lead capture failed', err);
+      showError('Something went wrong. Please try again.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  async function answerQualification(qualified) {
+    var btns = document.querySelectorAll('#step2 button');
+    btns.forEach(function (b) { b.disabled = true; });
+    try {
+      await fetch('/api/lead-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: window.__leadId,
+          qualified: qualified
+        })
+      });
+    } catch (err) {
+      console.error('lead-update failed', err);
+      // best-effort: log but still advance
+    } finally {
+      btns.forEach(function (b) { b.disabled = false; });
+      showStep(qualified ? 'stepOptions' : 'stepNoThanks');
+    }
+  }
+
+  function recordCta(kind) {
+    // fire-and-forget; do not await before navigation
+    fetch('/api/lead-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: window.__leadId,
+        cta_clicked: kind
+      })
+    }).catch(function () { /* swallow */ });
+  }
 </script>
 
 </body>
