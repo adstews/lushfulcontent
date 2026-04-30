@@ -96,7 +96,7 @@ describe('POST /api/lead', () => {
     expect(upsertSubscriber).toHaveBeenCalled()
     expect(addTags).toHaveBeenCalledWith({
       email: 'jane@example.com',
-      tags: ['girthfill-landing']
+      tags: ['girthfill-landing', 'SQ Lander']
     })
     expect(createLead).toHaveBeenCalledWith(expect.objectContaining({
       name: 'Jane',
@@ -124,7 +124,7 @@ describe('POST /api/lead', () => {
     expect(createLead).not.toHaveBeenCalled()
     expect(addTags).toHaveBeenCalledWith({
       email: 'bob@example.com',
-      tags: ['girthfill-carousel']
+      tags: ['girthfill-carousel', 'SQ Lander']
     })
   })
 

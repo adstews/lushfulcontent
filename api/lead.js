@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           UTM_CONT: body.utm_content ?? ''
         }
       })
-      await addTags({ email: body.email, tags: [tag] })
+      await addTags({ email: body.email, tags: [tag, 'SQ Lander'] })
       await sb.from('leads').update({
         mailchimp_subscriber_hash: subscriberHash,
         mailchimp_synced_at: new Date().toISOString()
