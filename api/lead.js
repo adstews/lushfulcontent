@@ -102,6 +102,20 @@ export default async function handler(req, res) {
 
   if (body.source === 'girthfill-landing') {
     tasks.push(taggedTask('close', async () => {
+      const requiredCloseEnvVars = [
+        'CLOSE_STATUS_NEW',
+        'CLOSE_CF_SOURCE',
+        'CLOSE_CF_UTM_SOURCE',
+        'CLOSE_CF_UTM_MEDIUM',
+        'CLOSE_CF_UTM_CAMPAIGN',
+        'CLOSE_CF_UTM_CONTENT',
+        'CLOSE_CF_FBCLID',
+        'CLOSE_CF_GCLID'
+      ]
+      const missingVars = requiredCloseEnvVars.filter(v => !process.env[v])
+      if (missingVars.length > 0) {
+        throw new Error(`Close env vars missing: ${missingVars.join(', ')}`)
+      }
       const customFields = {
         [process.env.CLOSE_CF_SOURCE]: body.source,
         [process.env.CLOSE_CF_UTM_SOURCE]: body.utm_source ?? '',
@@ -138,6 +152,8 @@ export default async function handler(req, res) {
         operation: 'create',
         error_message: String(err?.message || err),
         payload: body
+      }).catch(insertErr => {
+        console.error('lead_sync_errors insert failed', insertErr)
       })
     }
   }
