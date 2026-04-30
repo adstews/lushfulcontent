@@ -256,33 +256,14 @@
 <div class="form-card">
 
   <!-- ════════════════════════ -->
-  <!-- STEP 1: Tell Us About Yourself -->
+  <!-- STEP 1: Before We Begin (qualifier — shown first) -->
   <!-- ════════════════════════ -->
-  <div class="form-step active" id="step1">
+  <div class="form-step active" id="stepQualify">
     <div class="progress-bar">
       <div class="progress-dot active"></div>
       <div class="progress-dot"></div>
     </div>
     <div class="step-label">Step 1 of 2</div>
-    <h2>Tell Us About Yourself</h2>
-    <p>We'll use this to reach out about your consultation.</p>
-    <input type="text" class="form-input" placeholder="Full Name" id="formName">
-    <input type="email" class="form-input" placeholder="Email Address" id="formEmail">
-    <input type="tel" class="form-input" placeholder="Phone Number" id="formPhone">
-    <div id="formError" style="color: #c44; font-size: 0.85rem; min-height: 1.2em; margin-bottom: 0.5rem;"></div>
-    <button class="form-submit" onclick="submitStep1(event)">Continue</button>
-    <p class="consent-line">By submitting you agree to receive occasional emails from Lushful Aesthetics. Unsubscribe anytime.</p>
-  </div>
-
-  <!-- ════════════════════════ -->
-  <!-- STEP 2: Before We Begin -->
-  <!-- ════════════════════════ -->
-  <div class="form-step" id="step2">
-    <div class="progress-bar">
-      <div class="progress-dot active"></div>
-      <div class="progress-dot active"></div>
-    </div>
-    <div class="step-label">Step 2 of 2</div>
     <h2>Before We Begin</h2>
     <p class="highlight">GirthFill is not covered by insurance.</p>
     <p>Treatments start at <strong>$8,500 for 10 syringes</strong> and typically add <strong>1-2 inches of girth</strong>. Financing is available through Cherry.</p>
@@ -291,6 +272,25 @@
       <button class="btn-yes" onclick="answerQualification(true)">Yes, I'm Interested</button>
       <button class="btn-no" onclick="answerQualification(false)">Not Right Now</button>
     </div>
+  </div>
+
+  <!-- ════════════════════════ -->
+  <!-- STEP 2: Tell Us About Yourself (contact — only YES leads reach this) -->
+  <!-- ════════════════════════ -->
+  <div class="form-step" id="stepContact">
+    <div class="progress-bar">
+      <div class="progress-dot active"></div>
+      <div class="progress-dot active"></div>
+    </div>
+    <div class="step-label">Step 2 of 2</div>
+    <h2>Tell Us About Yourself</h2>
+    <p>We'll use this to reach out about your consultation.</p>
+    <input type="text" class="form-input" placeholder="Full Name" id="formName">
+    <input type="email" class="form-input" placeholder="Email Address" id="formEmail">
+    <input type="tel" class="form-input" placeholder="Phone Number" id="formPhone">
+    <div id="formError" style="color: #c44; font-size: 0.85rem; min-height: 1.2em; margin-bottom: 0.5rem;"></div>
+    <button class="form-submit" onclick="submitContact(event)">Continue</button>
+    <p class="consent-line">By submitting you agree to receive occasional emails from Lushful Aesthetics. Unsubscribe anytime.</p>
   </div>
 
   <!-- ════════════════════════ -->
@@ -318,11 +318,12 @@
   </div>
 
   <!-- ════════════════════════ -->
-  <!-- STEP 4 (NO): Mailing list -->
+  <!-- STEP 4 (NO): Disqualified exit — no data collected -->
   <!-- ════════════════════════ -->
   <div class="form-step disqualified" id="stepNoThanks">
     <h2>No Problem</h2>
-    <p>We'll add you to our mailing list and keep you updated. You can also call our office anytime at <a href="tel:+19172773398" class="call-inline">(917) 277-3398</a>.</p>
+    <p>GirthFill might not be the right fit right now — and that's okay. Feel free to explore our other services or reach out if anything changes.</p>
+    <p>You can always call our office at <a href="tel:+19172773398" class="call-inline">(917) 277-3398</a>.</p>
     <a href="https://lushfulaesthetics.com" class="option-btn" style="margin-top: 8px;">Visit Our Homepage</a>
   </div>
 
@@ -344,7 +345,13 @@
     if (el) el.textContent = msg;
   }
 
-  async function submitStep1(event) {
+  function answerQualification(qualified) {
+    var btns = document.querySelectorAll('#stepQualify button');
+    btns.forEach(function (b) { b.disabled = true; });
+    showStep(qualified ? 'stepContact' : 'stepNoThanks');
+  }
+
+  async function submitContact(event) {
     event.preventDefault();
     var name  = document.getElementById('formName').value.trim();
     var email = document.getElementById('formEmail').value.trim();
@@ -354,7 +361,7 @@
       return;
     }
 
-    var btn = document.querySelector('#step1 button.form-submit');
+    var btn = document.querySelector('#stepContact button.form-submit');
     var originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Submitting...';
@@ -362,7 +369,7 @@
     try {
       var attribution = window.lushfulAttribution ? window.lushfulAttribution() : {};
       var body = Object.assign(
-        { name: name, email: email, phone: phone, source: 'girthfill-landing' },
+        { name: name, email: email, phone: phone, source: 'girthfill-landing', qualified: true },
         attribution
       );
       var res = await fetch('/api/lead', {
@@ -373,34 +380,13 @@
       if (!res.ok) throw new Error('lead-post-failed:' + res.status);
       var data = await res.json();
       window.__leadId = data.lead_id;
-      showStep('step2');
+      showStep('stepOptions');
     } catch (err) {
       console.error('lead capture failed', err);
       showError('Something went wrong. Please try again.');
     } finally {
       btn.disabled = false;
       btn.textContent = originalText;
-    }
-  }
-
-  async function answerQualification(qualified) {
-    var btns = document.querySelectorAll('#step2 button');
-    btns.forEach(function (b) { b.disabled = true; });
-    try {
-      await fetch('/api/lead-update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lead_id: window.__leadId,
-          qualified: qualified
-        })
-      });
-    } catch (err) {
-      console.error('lead-update failed', err);
-      // best-effort: log but still advance
-    } finally {
-      btns.forEach(function (b) { b.disabled = false; });
-      showStep(qualified ? 'stepOptions' : 'stepNoThanks');
     }
   }
 

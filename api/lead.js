@@ -17,7 +17,8 @@ const BodySchema = z.object({
   gclid: z.string().optional().nullable(),
   referrer: z.string().optional().nullable(),
   landing_page: z.string().optional().nullable(),
-  user_agent: z.string().optional().nullable()
+  user_agent: z.string().optional().nullable(),
+  qualified: z.boolean().optional()
 })
 
 export default async function handler(req, res) {
@@ -36,26 +37,29 @@ export default async function handler(req, res) {
   const sb = getSupabase()
 
   // 1. Supabase upsert (fatal if it fails)
+  const upsertRow = {
+    name: body.name,
+    email: body.email,
+    phone: body.phone ?? null,
+    source: body.source,
+    utm_source: body.utm_source ?? null,
+    utm_medium: body.utm_medium ?? null,
+    utm_campaign: body.utm_campaign ?? null,
+    utm_content: body.utm_content ?? null,
+    utm_term: body.utm_term ?? null,
+    fbclid: body.fbclid ?? null,
+    gclid: body.gclid ?? null,
+    referrer: body.referrer ?? null,
+    landing_page: body.landing_page ?? null,
+    user_agent: body.user_agent ?? null
+  }
+  if (body.qualified !== undefined) {
+    upsertRow.qualified = body.qualified
+    upsertRow.qualified_at = new Date().toISOString()
+  }
   const { data: leadRow, error: upsertErr } = await sb
     .from('leads')
-    .upsert({
-      name: body.name,
-      email: body.email,
-      phone: body.phone ?? null,
-      source: body.source,
-      utm_source: body.utm_source ?? null,
-      utm_medium: body.utm_medium ?? null,
-      utm_campaign: body.utm_campaign ?? null,
-      utm_content: body.utm_content ?? null,
-      utm_term: body.utm_term ?? null,
-      fbclid: body.fbclid ?? null,
-      gclid: body.gclid ?? null,
-      referrer: body.referrer ?? null,
-      landing_page: body.landing_page ?? null,
-      user_agent: body.user_agent ?? null
-    }, {
-      onConflict: 'email,source'
-    })
+    .upsert(upsertRow, { onConflict: 'email,source' })
     .select('id')
     .single()
 
@@ -66,9 +70,12 @@ export default async function handler(req, res) {
   const leadId = leadRow.id
 
   // 2. Best-effort fanout
-  const tag = body.source === 'girthfill-carousel'
+  const sourceTag = body.source === 'girthfill-carousel'
     ? 'girthfill-carousel'
     : 'girthfill-landing'
+  const mailchimpTags = [sourceTag, 'SQ Lander']
+  if (body.qualified === true) mailchimpTags.push('girthfill-qualified')
+  if (body.qualified === false) mailchimpTags.push('girthfill-not-qualified')
 
   // Tag each task with its service name so failures are unambiguous
   function taggedTask(service, fn) {
@@ -91,7 +98,7 @@ export default async function handler(req, res) {
           UTM_CONT: body.utm_content ?? ''
         }
       })
-      await addTags({ email: body.email, tags: [tag, 'SQ Lander'] })
+      await addTags({ email: body.email, tags: mailchimpTags })
       await sb.from('leads').update({
         mailchimp_subscriber_hash: subscriberHash,
         mailchimp_synced_at: new Date().toISOString()
@@ -102,8 +109,13 @@ export default async function handler(req, res) {
 
   if (body.source === 'girthfill-landing') {
     tasks.push(taggedTask('close', async () => {
+      // Pick the right Close status based on qualified at create time.
+      let statusVar = 'CLOSE_STATUS_NEW'
+      if (body.qualified === true) statusVar = 'CLOSE_STATUS_QUALIFIED'
+      if (body.qualified === false) statusVar = 'CLOSE_STATUS_BAD_FIT'
+
       const requiredCloseEnvVars = [
-        'CLOSE_STATUS_NEW',
+        statusVar,
         'CLOSE_CF_SOURCE',
         'CLOSE_CF_UTM_SOURCE',
         'CLOSE_CF_UTM_MEDIUM',
@@ -112,6 +124,7 @@ export default async function handler(req, res) {
         'CLOSE_CF_FBCLID',
         'CLOSE_CF_GCLID'
       ]
+      if (body.qualified !== undefined) requiredCloseEnvVars.push('CLOSE_CF_QUALIFIED')
       const missingVars = requiredCloseEnvVars.filter(v => !process.env[v])
       if (missingVars.length > 0) {
         throw new Error(`Close env vars missing: ${missingVars.join(', ')}`)
@@ -130,11 +143,14 @@ export default async function handler(req, res) {
       for (const [envName, value] of optionalFields) {
         if (value) customFields[process.env[envName]] = value
       }
+      if (body.qualified !== undefined) {
+        customFields[process.env.CLOSE_CF_QUALIFIED] = body.qualified ? 'Yes' : 'No'
+      }
       const { closeLeadId } = await createLead({
         name: body.name,
         email: body.email,
         phone: body.phone ?? null,
-        statusId: process.env.CLOSE_STATUS_NEW,
+        statusId: process.env[statusVar],
         customFields
       })
       await sb.from('leads').update({
