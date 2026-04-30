@@ -143,6 +143,36 @@ describe('POST /api/lead', () => {
     expect(createLead).not.toHaveBeenCalled()
   })
 
+  it('omits empty optional custom fields from Close payload', async () => {
+    mockSupabase({
+      upsertResult: { data: { id: 'lead-uuid-3' }, error: null }
+    })
+    upsertSubscriber.mockResolvedValue({ subscriberHash: 'h' })
+    addTags.mockResolvedValue()
+    createLead.mockResolvedValue({ closeLeadId: 'close_lead_xyz' })
+
+    const { req, res } = makeReqRes({
+      name: 'X',
+      email: 'x@y.com',
+      phone: null,
+      source: 'girthfill-landing',
+      utm_source: 'meta'
+      // no utm_medium, utm_campaign, utm_content, fbclid, gclid
+    })
+    await handler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    expect(createLead).toHaveBeenCalledTimes(1)
+    const { customFields } = createLead.mock.calls[0][0]
+    expect(Object.keys(customFields)).toContain('cf_src')
+    expect(Object.keys(customFields)).toContain('cf_utms')
+    expect(Object.keys(customFields)).not.toContain('cf_utmm')
+    expect(Object.keys(customFields)).not.toContain('cf_utmc')
+    expect(Object.keys(customFields)).not.toContain('cf_utmcon')
+    expect(Object.keys(customFields)).not.toContain('cf_fb')
+    expect(Object.keys(customFields)).not.toContain('cf_gc')
+  })
+
   it('still returns success when Mailchimp fails (best-effort)', async () => {
     const chain = mockSupabase({
       upsertResult: { data: { id: 'lead-id' }, error: null }

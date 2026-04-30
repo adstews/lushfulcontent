@@ -117,13 +117,18 @@ export default async function handler(req, res) {
         throw new Error(`Close env vars missing: ${missingVars.join(', ')}`)
       }
       const customFields = {
-        [process.env.CLOSE_CF_SOURCE]: body.source,
-        [process.env.CLOSE_CF_UTM_SOURCE]: body.utm_source ?? '',
-        [process.env.CLOSE_CF_UTM_MEDIUM]: body.utm_medium ?? '',
-        [process.env.CLOSE_CF_UTM_CAMPAIGN]: body.utm_campaign ?? '',
-        [process.env.CLOSE_CF_UTM_CONTENT]: body.utm_content ?? '',
-        [process.env.CLOSE_CF_FBCLID]: body.fbclid ?? '',
-        [process.env.CLOSE_CF_GCLID]: body.gclid ?? ''
+        [process.env.CLOSE_CF_SOURCE]: body.source
+      }
+      const optionalFields = [
+        ['CLOSE_CF_UTM_SOURCE', body.utm_source],
+        ['CLOSE_CF_UTM_MEDIUM', body.utm_medium],
+        ['CLOSE_CF_UTM_CAMPAIGN', body.utm_campaign],
+        ['CLOSE_CF_UTM_CONTENT', body.utm_content],
+        ['CLOSE_CF_FBCLID', body.fbclid],
+        ['CLOSE_CF_GCLID', body.gclid]
+      ]
+      for (const [envName, value] of optionalFields) {
+        if (value) customFields[process.env[envName]] = value
       }
       const { closeLeadId } = await createLead({
         name: body.name,
