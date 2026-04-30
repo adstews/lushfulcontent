@@ -636,6 +636,7 @@
     .press-logos span { font-size: 14px; }
   }
 </style>
+<script src="/js/attribution.js"></script>
 </head>
 <body>
 
@@ -703,6 +704,7 @@
       <label for="baPhone">Phone Number</label>
       <input type="tel" id="baPhone" placeholder="(555) 123-4567" required>
       <button type="submit" class="ba-modal-submit" id="baSubmitBtn">View Photos</button>
+      <div id="baError" style="color: #c44; font-size: 0.85rem; min-height: 1.2em;"></div>
     </form>
     <p class="ba-consent">We will never sell your information. By submitting you confirm you are over 18 and agree to be contacted about GirthFill.</p>
   </div>
@@ -952,24 +954,39 @@
   });
 
   /* ── Form Submit → Reveal Carousel ── */
-  function submitBaForm(e) {
+  async function submitBaForm(e) {
     e.preventDefault();
-    var btn = document.getElementById('baSubmitBtn');
-    var name = document.getElementById('baName').value.trim();
+    var name  = document.getElementById('baName').value.trim();
     var email = document.getElementById('baEmail').value.trim();
     var phone = document.getElementById('baPhone').value.trim();
     if (!name || !email || !phone) return;
 
+    var btn = document.getElementById('baSubmitBtn');
+    var originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Loading...';
 
-    // Log lead (replace with your webhook/backend endpoint)
-    console.log('B&A Lead:', { name: name, email: email, phone: phone });
-
-    // Reveal carousel
-    setTimeout(function() {
+    try {
+      var attribution = window.lushfulAttribution ? window.lushfulAttribution() : {};
+      var body = Object.assign(
+        { name: name, email: email, phone: phone, source: 'girthfill-carousel' },
+        attribution
+      );
+      var res = await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('ba-post-failed:' + res.status);
+      // success — reveal carousel
       revealCarousel();
-    }, 600);
+    } catch (err) {
+      console.error('B&A lead capture failed', err);
+      var errEl = document.getElementById('baError');
+      if (errEl) errEl.textContent = 'Something went wrong. Please try again.';
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   }
 
   function revealCarousel() {
