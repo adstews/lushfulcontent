@@ -669,6 +669,14 @@ src="https://www.facebook.com/tr?id=24843507025240186&ev=PageView&noscript=1"
 
   /* ── RESPONSIVE ── */
   @media (max-width: 900px) {
+    nav { padding: 14px 20px; }
+    .nav-logo { font-size: 16px; }
+    .nav-links a:not(.nav-cta) { display: none; }
+    .nav-cta {
+      padding: 8px 14px !important;
+      font-size: 11px !important;
+      letter-spacing: 0.3px;
+    }
     .hero { flex-direction: column; padding: 60px 24px 80px; gap: 40px; }
     .hero h1 { font-size: 36px; }
     .hero-image { width: 100%; }
@@ -678,7 +686,6 @@ src="https://www.facebook.com/tr?id=24843507025240186&ev=PageView&noscript=1"
     .benefits-grid { grid-template-columns: 1fr; }
     .testimonials-grid { grid-template-columns: 1fr; }
     .expert-section { flex-direction: column; }
-    .nav-links { display: none; }
     .press-logos { gap: 24px; }
     .press-logos span { font-size: 14px; }
   }
