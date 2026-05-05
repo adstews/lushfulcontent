@@ -149,11 +149,14 @@ src="https://www.facebook.com/tr?id=24843507025240186&ev=PageView&noscript=1"
     background: #000;
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   }
-  .hero-video iframe {
+  .hero-video iframe,
+  .hero-video video {
     width: 100%;
     height: 100%;
     border: 0;
     display: block;
+    object-fit: contain;
+    background: #000;
   }
 
   /* ── BEFORE/AFTER GATE ── */
@@ -717,11 +720,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </div>
   <div class="hero-image">
     <div class="hero-video">
-      <iframe src="https://www.youtube.com/embed/-8OszlU7y3M"
-              title="GirthFill by Lushful Aesthetics"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerpolicy="strict-origin-when-cross-origin"
-              allowfullscreen></iframe>
+      <video controls preload="metadata" playsinline
+             poster="/videos/girthfill-consult-poster.jpg">
+        <source src="/videos/girthfill-consult.mp4" type="video/mp4">
+        Your browser does not support HTML5 video.
+      </video>
     </div>
   </div>
 </div>
