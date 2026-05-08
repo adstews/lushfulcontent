@@ -91,7 +91,9 @@ export default async function handler(req, res) {
     }))
   }
 
-  if (lead.source === 'girthfill-landing' && lead.close_lead_id) {
+  // Any source that produced a Close lead (i.e. anything except the
+  // age-gate carousel) gets Close updates on Step 3 CTA clicks.
+  if (lead.source !== 'girthfill-carousel' && lead.close_lead_id) {
     tasks.push(taggedTask('close', async () => {
       const requiredCloseEnvVars = []
       if (body.qualified !== undefined) {

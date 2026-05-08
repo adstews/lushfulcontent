@@ -7,7 +7,7 @@ const BodySchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   phone: z.string().nullable().optional(),
-  source: z.enum(['girthfill-landing', 'girthfill-carousel']),
+  source: z.enum(['girthfill-landing', 'girthfill-carousel', 'girthfill-nyc', 'girthfill-sd']),
   utm_source: z.string().optional().nullable(),
   utm_medium: z.string().optional().nullable(),
   utm_campaign: z.string().optional().nullable(),
@@ -70,10 +70,9 @@ export default async function handler(req, res) {
   const leadId = leadRow.id
 
   // 2. Best-effort fanout
-  const sourceTag = body.source === 'girthfill-carousel'
-    ? 'girthfill-carousel'
-    : 'girthfill-landing'
-  const mailchimpTags = [sourceTag, 'SQ Lander']
+  // Use the source value directly as the Mailchimp tag so each landing
+  // page (girthfill-nyc, girthfill-sd, etc.) gets its own segmentable tag.
+  const mailchimpTags = [body.source, 'SQ Lander']
   if (body.qualified === true) mailchimpTags.push('girthfill-qualified')
   if (body.qualified === false) mailchimpTags.push('girthfill-not-qualified')
 
@@ -107,7 +106,9 @@ export default async function handler(req, res) {
     })
   ]
 
-  if (body.source === 'girthfill-landing') {
+  // All real consult-form submissions flow to Close (any source except
+  // the age-gate carousel, which intentionally stays out of the sales pipeline).
+  if (body.source !== 'girthfill-carousel') {
     tasks.push(taggedTask('close', async () => {
       // Pick the right Close status based on qualified at create time.
       let statusVar = 'CLOSE_STATUS_NEW'

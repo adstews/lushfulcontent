@@ -427,8 +427,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     try {
       var attribution = window.lushfulAttribution ? window.lushfulAttribution() : {};
+      // Resolve source from ?source= query param so each landing page
+      // (girthfill-nyc, girthfill-sd, ...) can identify itself in Close/Mailchimp.
+      // Falls back to 'girthfill-landing' for direct hits / generic flow.
+      var allowedSources = ['girthfill-landing', 'girthfill-nyc', 'girthfill-sd'];
+      var sourceParam = new URLSearchParams(window.location.search).get('source');
+      var source = allowedSources.indexOf(sourceParam) >= 0 ? sourceParam : 'girthfill-landing';
       var body = Object.assign(
-        { name: name, email: email, phone: phone, source: 'girthfill-landing', qualified: true },
+        { name: name, email: email, phone: phone, source: source, qualified: true },
         attribution
       );
       var res = await fetch('/api/lead', {
