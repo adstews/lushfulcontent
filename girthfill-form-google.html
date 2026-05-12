@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Request More Info | GirthFill by Lushful Aesthetics</title>
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-PSX5GNZ');</script>
+<!-- End Google Tag Manager -->
+
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '24843507025240186');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=24843507025240186&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
+
+<!-- Google Ads (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-11150884432"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-11150884432');
+
+  // Existing "Qualified Lead" conversion — fires at Step 2 qualified=yes
+  function gtag_report_qualified_lead() {
+    gtag('event', 'conversion', {
+      'send_to': 'AW-11150884432/o557CJi-86UcEND8k8Up'
+    });
+    return false;
+  }
+
+  // NEW "Lead Submission" conversion — fires at Step 1 contact submit.
+  // LAUNCH PREREQ: create conversion action in Google Ads UI (Tools →
+  // Conversions → New), copy the label string (the part after "/"),
+  // and replace LEAD_SUBMISSION_LABEL below with the real label.
+  function gtag_report_lead_submission() {
+    gtag('event', 'conversion', {
+      'send_to': 'AW-11150884432/LEAD_SUBMISSION_LABEL'
+    });
+    return false;
+  }
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --dark: #1E2A21;
+    --dark-brown: #3B3230;
+    --cream: #F5F0EB;
+    --warm-white: #FAF8F5;
+    --accent: #C4A882;
+    --accent-dark: #A88B6A;
+    --text: #2C2826;
+    --text-light: #6B6560;
+    --border: #E8E2DB;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text);
+    background: var(--dark);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  .form-logo {
+    font-family: 'Playfair Display', serif;
+    color: #fff;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+
+  .form-card {
+    background: #fff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 520px;
+    padding: 48px 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: fadeUp 0.4s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .progress-bar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 36px;
+  }
+  .progress-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .progress-dot.active { background: var(--dark); }
+
+  .form-step { display: none; }
+  .form-step.active { display: block; animation: fadeUp 0.35s ease; }
+
+  .form-step h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    color: var(--dark);
+  }
+  .form-step p {
+    font-size: 15px;
+    color: var(--text-light);
+    line-height: 1.65;
+    margin-bottom: 24px;
+  }
+  .highlight {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 4px;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .btn-yes, .btn-no {
+    padding: 15px 44px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-yes { background: var(--dark); color: #fff; }
+  .btn-yes:hover { background: #2a3a2d; }
+  .btn-no { background: var(--cream); color: var(--text); }
+  .btn-no:hover { background: #ebe5de; }
+
+  .form-input {
+    width: 100%;
+    padding: 16px 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    background: var(--warm-white);
+  }
+  .form-input:focus { border-color: var(--dark); background: #fff; }
+
+  .form-submit {
+    width: 100%;
+    padding: 16px;
+    background: var(--dark);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .form-submit:hover { background: #2a3a2d; }
+
+  .option-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    background: var(--dark);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .option-btn:hover { background: #2a3a2d; }
+  .option-note {
+    font-size: 13px;
+    color: var(--text-light);
+    margin: 10px 0 22px;
+    line-height: 1.4;
+  }
+  .option-note:last-of-type { margin-bottom: 8px; }
+  .call-btn {
+    display: block;
+    padding: 14px 16px;
+    background: var(--cream);
+    color: var(--text);
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    margin-top: 12px;
+    line-height: 1.5;
+    transition: background 0.2s;
+  }
+  .call-btn:hover { background: #ebe5de; }
+  .call-btn strong { color: var(--dark); }
+
+  /* Social-path buttons (Step 3b) */
+  .social-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    margin-top: 12px;
+    color: #fff;
+    transition: opacity 0.2s, transform 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .social-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+  .social-btn.ig {
+    background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%);
+  }
+  .social-btn.yt { background: #ff0000; }
+
+  .disqualified { color: var(--text-light); }
+  .disqualified h2 { margin-bottom: 12px; color: var(--dark); }
+  .disqualified p { margin-bottom: 20px; }
+
+  .form-footer {
+    margin-top: 24px;
+    text-align: center;
+    color: rgba(255,255,255,0.35);
+    font-size: 12px;
+  }
+  .form-footer a {
+    color: rgba(255,255,255,0.5);
+    text-decoration: none;
+  }
+  .form-footer a:hover { text-decoration: underline; }
+
+  .step-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-light);
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+
+  .consent-line {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    text-align: center;
+    margin-top: 0.75rem;
+    line-height: 1.4;
+  }
+
+  @media (max-width: 600px) {
+    .form-card { padding: 36px 24px; }
+    .form-step h2 { font-size: 24px; }
+    .btn-group { flex-direction: column; }
+    .btn-yes, .btn-no { width: 100%; }
+  }
+</style>
+<script src="/js/attribution.js"></script>
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PSX5GNZ"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<div class="form-logo">Lushful Aesthetics</div>
+
+<div class="form-card">
+
+  <!-- STEP 1: Contact info (active first) -->
+  <div class="form-step active" id="stepContact">
+    <div class="progress-bar">
+      <div class="progress-dot active"></div>
+      <div class="progress-dot"></div>
+    </div>
+    <div class="step-label">Step 1 of 2</div>
+    <h2>Tell Us About Yourself</h2>
+    <p>We'll use this to reach out about your consultation.</p>
+    <input type="text" class="form-input" placeholder="First Name" id="formFirstName" autocomplete="given-name">
+    <input type="text" class="form-input" placeholder="Last Name" id="formLastName" autocomplete="family-name">
+    <input type="email" class="form-input" placeholder="Email Address" id="formEmail" autocomplete="email">
+    <input type="tel" class="form-input" placeholder="Phone Number" id="formPhone" autocomplete="tel">
+    <div id="formError" style="color: #c44; font-size: 0.85rem; min-height: 1.2em; margin-bottom: 0.5rem;"></div>
+    <button class="form-submit" onclick="submitContact(event)">Continue</button>
+    <p class="consent-line">By submitting you agree to receive occasional emails from Lushful Aesthetics. Unsubscribe anytime.</p>
+  </div>
+
+  <!-- STEP 2: $8,500 qualifier -->
+  <div class="form-step" id="stepQualify">
+    <div class="progress-bar">
+      <div class="progress-dot active"></div>
+      <div class="progress-dot active"></div>
+    </div>
+    <div class="step-label">Step 2 of 2</div>
+    <h2>Before We Begin</h2>
+    <p class="highlight">GirthFill is not covered by insurance.</p>
+    <p>Treatments start at <strong>$8,500 for 10 syringes</strong> and typically add <strong>1-2 inches of girth</strong>. Financing is available through Cherry.</p>
+    <p style="margin-bottom: 32px; font-weight: 600; color: var(--dark);">Are you still interested?</p>
+    <div class="btn-group">
+      <button class="btn-yes" onclick="answerQualification(true)">Yes, I'm Interested</button>
+      <button class="btn-no" onclick="answerQualification(false)">Not Right Now</button>
+    </div>
+  </div>
+
+  <!-- STEP 3a: Yes path (book options) -->
+  <div class="form-step" id="stepOptions">
+    <h2>Great! Here are your options:</h2>
+    <p style="margin-bottom: 28px;">Choose the next step that works best for you.</p>
+
+    <a href="https://www.joinblvd.com/b/lushful-aesthetics/widget#/locations"
+       class="option-btn" target="_blank" rel="noopener"
+       onclick="recordCta('book')">Book An Appointment</a>
+    <p class="option-note">$1,000 Deposit, applied to procedure</p>
+
+    <a href="tel:+19172773398" class="call-btn"
+       onclick="recordCta('tap-to-call')">
+      You can also call our office to discuss details.<br>
+      <strong>(917) 277-3398</strong>
+    </a>
+  </div>
+
+  <!-- STEP 3b: No path (social follow + homepage) -->
+  <div class="form-step disqualified" id="stepSocial">
+    <h2>Stay In Touch</h2>
+    <p>GirthFill might not be right for you today &mdash; and that's okay. Follow us for results and educational content. If anything changes, we'd love to hear from you.</p>
+    <a href="https://www.instagram.com/lushfulaesthetics/"
+       class="social-btn ig" target="_blank" rel="noopener">Follow on Instagram</a>
+    <a href="https://www.youtube.com/channel/UCh6HankCyOK9CgsS-uvTjGg/"
+       class="social-btn yt" target="_blank" rel="noopener">Subscribe on YouTube</a>
+    <a href="https://lushfulaesthetics.com" class="option-btn" style="margin-top: 16px;">Visit Our Homepage</a>
+  </div>
+
+</div>
+
+<div class="form-footer">
+  <p>&copy; 2026 Lushful Aesthetics &bull; <a href="https://lushfulaesthetics.com">lushfulaesthetics.com</a></p>
+</div>
+
+<script>
+  function showStep(id) {
+    document.querySelectorAll('.form-step').forEach(function (s) {
+      s.classList.remove('active');
+    });
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showError(msg) {
+    var el = document.getElementById('formError');
+    if (el) el.textContent = msg;
+  }
+
+  async function submitContact(event) {
+    event.preventDefault();
+    var firstName = document.getElementById('formFirstName').value.trim();
+    var lastName  = document.getElementById('formLastName').value.trim();
+    var email     = document.getElementById('formEmail').value.trim();
+    var phone     = document.getElementById('formPhone').value.trim();
+    if (!firstName || !lastName || !email || !phone) {
+      showError('Please fill in all fields.');
+      return;
+    }
+    var name = (firstName + ' ' + lastName).trim();
+
+    var btn = document.querySelector('#stepContact button.form-submit');
+    var originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+      var attribution = window.lushfulAttribution ? window.lushfulAttribution() : {};
+      var allowedSources = ['girthfill-nyc-google', 'girthfill-sd-google'];
+      var sourceParam = new URLSearchParams(window.location.search).get('source');
+      var source = allowedSources.indexOf(sourceParam) >= 0 ? sourceParam : 'girthfill-nyc-google';
+      var body = Object.assign(
+        { name: name, email: email, phone: phone, source: source },
+        attribution
+      );
+      var res = await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('lead-post-failed:' + res.status);
+      var data = await res.json();
+      window.__leadId = data.lead_id;
+      if (typeof gtag_report_lead_submission === 'function') gtag_report_lead_submission();
+      if (typeof fbq === 'function') fbq('track', 'Lead');
+      showStep('stepQualify');
+    } catch (err) {
+      console.error('lead capture failed', err);
+      showError('Something went wrong. Please try again.');
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  function answerQualification(qualified) {
+    var btns = document.querySelectorAll('#stepQualify button');
+    btns.forEach(function (b) { b.disabled = true; });
+
+    // Fire-and-forget update to /api/lead-update; UI advances immediately
+    fetch('/api/lead-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: window.__leadId,
+        qualified: qualified
+      })
+    }).catch(function () { /* swallow */ });
+
+    if (qualified) {
+      if (typeof gtag_report_qualified_lead === 'function') gtag_report_qualified_lead();
+      if (typeof fbq === 'function') fbq('track', 'CompleteRegistration');
+      showStep('stepOptions');
+    } else {
+      showStep('stepSocial');
+    }
+  }
+
+  function recordCta(kind) {
+    fetch('/api/lead-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: window.__leadId,
+        cta_clicked: kind
+      })
+    }).catch(function () { /* swallow */ });
+  }
+</script>
+
+</body>
+</html>
