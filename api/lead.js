@@ -7,7 +7,14 @@ const BodySchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   phone: z.string().nullable().optional(),
-  source: z.enum(['girthfill-landing', 'girthfill-carousel', 'girthfill-nyc', 'girthfill-sd']),
+  source: z.enum([
+    'girthfill-landing',
+    'girthfill-carousel',
+    'girthfill-nyc',
+    'girthfill-sd',
+    'girthfill-nyc-google',
+    'girthfill-sd-google'
+  ]),
   utm_source: z.string().optional().nullable(),
   utm_medium: z.string().optional().nullable(),
   utm_campaign: z.string().optional().nullable(),

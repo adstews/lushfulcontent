@@ -195,4 +195,57 @@ describe('POST /api/lead', () => {
       operation: 'create'
     }))
   })
+
+  it('accepts source = girthfill-nyc-google and tags Mailchimp with that source', async () => {
+    mockSupabase({
+      upsertResult: { data: { id: 'lead-uuid' }, error: null }
+    })
+    upsertSubscriber.mockResolvedValue({ subscriberHash: 'hash123' })
+    addTags.mockResolvedValue()
+    createLead.mockResolvedValue({ closeLeadId: 'close_lead_xyz' })
+
+    const { req, res } = makeReqRes({
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      phone: '555-0100',
+      source: 'girthfill-nyc-google'
+    })
+    await handler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    expect(addTags).toHaveBeenCalledWith({
+      email: 'jane@example.com',
+      tags: ['girthfill-nyc-google', 'SQ Lander']
+    })
+    // Step 1 contact submit does NOT send qualified, so Close should
+    // be created with the NEW (Potential) status.
+    expect(createLead).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusId: 'stat_new'
+      })
+    )
+  })
+
+  it('accepts source = girthfill-sd-google', async () => {
+    mockSupabase({
+      upsertResult: { data: { id: 'lead-uuid' }, error: null }
+    })
+    upsertSubscriber.mockResolvedValue({ subscriberHash: 'hash123' })
+    addTags.mockResolvedValue()
+    createLead.mockResolvedValue({ closeLeadId: 'close_lead_xyz' })
+
+    const { req, res } = makeReqRes({
+      name: 'John Smith',
+      email: 'john@example.com',
+      phone: '555-0200',
+      source: 'girthfill-sd-google'
+    })
+    await handler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    expect(addTags).toHaveBeenCalledWith({
+      email: 'john@example.com',
+      tags: ['girthfill-sd-google', 'SQ Lander']
+    })
+  })
 })
