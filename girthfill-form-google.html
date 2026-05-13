@@ -47,13 +47,10 @@ src="https://www.facebook.com/tr?id=24843507025240186&ev=PageView&noscript=1"
     return false;
   }
 
-  // NEW "Lead Submission" conversion — fires at Step 1 contact submit.
-  // LAUNCH PREREQ: create conversion action in Google Ads UI (Tools →
-  // Conversions → New), copy the label string (the part after "/"),
-  // and replace LEAD_SUBMISSION_LABEL below with the real label.
+  // "Step 1 Lead" conversion — fires at Step 1 contact submit
   function gtag_report_lead_submission() {
     gtag('event', 'conversion', {
-      'send_to': 'AW-11150884432/LEAD_SUBMISSION_LABEL'
+      'send_to': 'AW-11150884432/mPTQCJjfnKwcEND8k8Up'
     });
     return false;
   }
