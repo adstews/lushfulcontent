@@ -302,14 +302,30 @@ const REACTION_EMOJI = {
 
 function h(tag, attrs, ...children) {
   const el = document.createElement(tag)
+  // Certain attributes need to be set as DOM properties, not attributes —
+  // and `value` on a <select> specifically must be set AFTER its <option>
+  // children are appended, otherwise the matching option doesn't get
+  // selected and the displayed value is wrong.
+  const deferred = {}
   for (const [k, v] of Object.entries(attrs || {})) {
-    if (k === 'class') el.className = v
-    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v)
-    else if (v !== false && v != null) el.setAttribute(k, v)
+    if (k === 'class') { el.className = v; continue }
+    if (k.startsWith('on') && typeof v === 'function') {
+      el.addEventListener(k.slice(2).toLowerCase(), v)
+      continue
+    }
+    if (k === 'ref' && typeof v === 'function') { v(el); continue }
+    if (k === 'value' || k === 'checked' || k === 'selected' || k === 'disabled') {
+      deferred[k] = v
+      continue
+    }
+    if (v !== false && v != null) el.setAttribute(k, v)
   }
   for (const c of children.flat()) {
     if (c == null || c === false) continue
     el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c)
+  }
+  for (const [k, v] of Object.entries(deferred)) {
+    if (v !== false && v != null) el[k] = v
   }
   return el
 }
