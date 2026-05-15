@@ -1,0 +1,150 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+vi.mock('../../../lib/close.js', () => ({
+  findLeadByPhone: vi.fn()
+}))
+vi.mock('../../../lib/imessage-bridge.js', () => ({
+  logImessageActivity: vi.fn()
+}))
+
+const { findLeadByPhone } = await import('../../../lib/close.js')
+const { logImessageActivity } = await import('../../../lib/imessage-bridge.js')
+const handler = (await import('../inbound.js')).default
+
+function makeReqRes(body, { method = 'POST', headers = {}, url = '/api/sendblue/inbound' } = {}) {
+  const req = { method, body, headers, url }
+  const res = {
+    statusCode: 200,
+    _json: null,
+    status(code) { this.statusCode = code; return this },
+    json(obj) { this._json = obj; return this }
+  }
+  return { req, res }
+}
+
+beforeEach(() => {
+  delete process.env.SENDBLUE_WEBHOOK_SECRET
+})
+
+afterEach(() => {
+  vi.clearAllMocks()
+})
+
+describe('POST /api/sendblue/inbound', () => {
+  it('returns 405 on non-POST', async () => {
+    const { req, res } = makeReqRes({}, { method: 'GET' })
+    await handler(req, res)
+    expect(res.statusCode).toBe(405)
+  })
+
+  it('returns 401 when secret is set but missing on request', async () => {
+    process.env.SENDBLUE_WEBHOOK_SECRET = 'shh'
+    const { req, res } = makeReqRes({
+      from_number: '+15550100123',
+      content: 'hi'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('accepts matching secret via X-Webhook-Secret header', async () => {
+    process.env.SENDBLUE_WEBHOOK_SECRET = 'shh'
+    findLeadByPhone.mockResolvedValue(null)
+    const { req, res } = makeReqRes(
+      { from_number: '+15550100123', content: 'hi' },
+      { headers: { 'x-webhook-secret': 'shh' } }
+    )
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+  })
+
+  it('accepts matching secret via ?secret= query param', async () => {
+    process.env.SENDBLUE_WEBHOOK_SECRET = 'shh'
+    findLeadByPhone.mockResolvedValue(null)
+    const { req, res } = makeReqRes(
+      { from_number: '+15550100123', content: 'hi' },
+      { url: '/api/sendblue/inbound?secret=shh' }
+    )
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+  })
+
+  it('returns 400 on missing from/content', async () => {
+    const { req, res } = makeReqRes({ from_number: '+15550100123' })
+    await handler(req, res)
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('returns 200 with matched:false when no lead found', async () => {
+    findLeadByPhone.mockResolvedValue(null)
+    const { req, res } = makeReqRes({
+      from_number: '+15550100123',
+      content: 'hello back'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res._json.matched).toBe(false)
+    expect(logImessageActivity).not.toHaveBeenCalled()
+  })
+
+  it('logs a custom activity when lead is found', async () => {
+    findLeadByPhone.mockResolvedValue({
+      closeLeadId: 'lead_abc',
+      contactId: 'cont_1',
+      displayName: 'Jane'
+    })
+    logImessageActivity.mockResolvedValue({ ok: true, activityId: 'acti_xyz' })
+
+    const { req, res } = makeReqRes({
+      from_number: '5550100123',
+      content: 'hi from iMessage',
+      media_url: 'https://example.com/x.jpg',
+      message_handle: 'sb_handle_1'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(findLeadByPhone).toHaveBeenCalledWith('+15550100123')
+    expect(logImessageActivity).toHaveBeenCalledWith({
+      leadId: 'lead_abc',
+      contactId: 'cont_1',
+      direction: 'inbound',
+      message: 'hi from iMessage',
+      phone: '+15550100123',
+      mediaUrl: 'https://example.com/x.jpg',
+      sendblueHandle: 'sb_handle_1'
+    })
+    expect(res._json).toMatchObject({
+      ok: true,
+      matched: true,
+      leadId: 'lead_abc',
+      logged: true
+    })
+  })
+
+  it('returns 502 when Close lookup throws', async () => {
+    findLeadByPhone.mockRejectedValue(new Error('Close lead search failed: 500'))
+    const { req, res } = makeReqRes({
+      from_number: '+15550100123',
+      content: 'hi'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(502)
+  })
+
+  it('returns logged:false with error when activity creation fails', async () => {
+    findLeadByPhone.mockResolvedValue({
+      closeLeadId: 'lead_x',
+      contactId: null,
+      displayName: 'X'
+    })
+    logImessageActivity.mockResolvedValue({ ok: false, error: 'CLOSE_CUSTOM_ACTIVITY_IMESSAGE not set' })
+    const { req, res } = makeReqRes({
+      from_number: '+15550100123',
+      content: 'hi'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res._json.logged).toBe(false)
+    expect(res._json.logError).toMatch(/CLOSE_CUSTOM_ACTIVITY_IMESSAGE/)
+  })
+})
