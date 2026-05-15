@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../../../lib/sendblue.js', () => ({
-  getAccount: vi.fn()
+  checkAuth: vi.fn()
 }))
 vi.mock('../../../lib/close.js', () => ({
   getMe: vi.fn()
 }))
 
-const { getAccount } = await import('../../../lib/sendblue.js')
+const { checkAuth } = await import('../../../lib/sendblue.js')
 const { getMe } = await import('../../../lib/close.js')
 const handler = (await import('../health.js')).default
 
@@ -36,7 +36,7 @@ afterEach(() => {
 
 describe('GET /api/sendblue/health', () => {
   it('returns 200 with both ok when both APIs respond', async () => {
-    getAccount.mockResolvedValue({ name: 'workspace' })
+    checkAuth.mockResolvedValue({ name: 'workspace' })
     getMe.mockResolvedValue({ id: 'user_1' })
     const { req, res } = makeReqRes()
     await handler(req, res)
@@ -52,7 +52,7 @@ describe('GET /api/sendblue/health', () => {
   })
 
   it('returns 503 when SendBlue check fails', async () => {
-    getAccount.mockRejectedValue(new Error('SendBlue account check failed: 401'))
+    checkAuth.mockRejectedValue(new Error('SendBlue auth check failed: 401'))
     getMe.mockResolvedValue({ id: 'user_1' })
     const { req, res } = makeReqRes()
     await handler(req, res)
@@ -63,7 +63,7 @@ describe('GET /api/sendblue/health', () => {
   })
 
   it('returns 503 when Close check fails', async () => {
-    getAccount.mockResolvedValue({})
+    checkAuth.mockResolvedValue({})
     getMe.mockRejectedValue(new Error('Close /me failed: 401'))
     const { req, res } = makeReqRes()
     await handler(req, res)

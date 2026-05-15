@@ -1,9 +1,9 @@
-import { getAccount } from '../../lib/sendblue.js'
+import { checkAuth } from '../../lib/sendblue.js'
 import { getMe } from '../../lib/close.js'
 
 export default async function handler(req, res) {
   const results = await Promise.allSettled([
-    getAccount().then(() => ({ service: 'sendblue', ok: true })),
+    checkAuth().then(() => ({ service: 'sendblue', ok: true })),
     getMe().then(() => ({ service: 'close', ok: true }))
   ])
 
