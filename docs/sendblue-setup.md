@@ -148,6 +148,31 @@ In a Close workflow, add an **HTTP request** step:
 Close substitutes the template variables at send time. Use `/outbound` instead
 if you prefer Close's automatic event payload format.
 
+## Reply console (`/imessage`)
+
+A password-gated inbox + reply UI lives at the root of the deploy:
+
+- **Production URL:** `https://start.lushfulaesthetics.com/imessage`
+- Single shared password set via `REPLY_CONSOLE_PASSWORD`
+- Sessions are HMAC-signed cookies (30-day lifetime), keyed on `REPLY_CONSOLE_SESSION_SECRET` (>= 16 chars, random)
+
+What it does:
+
+- Left pane: every lead that has any iMessage activity, sorted by most recent message
+- Right pane: the full thread for a selected lead (inbound + outbound), with a reply box
+- Replies POST to `/api/sendblue/console/reply`, which goes through the same `/send` code path — so replies are automatically logged as outbound iMessage activities on the lead in Close
+- Polls for new messages every 20 seconds while the tab is visible
+
+Endpoints under `/api/sendblue/console/`:
+
+| Route | Method | Purpose |
+| --- | --- | --- |
+| `/login` | POST `{ password }` | Sign in, sets session cookie |
+| `/login` | DELETE | Sign out, clears cookie |
+| `/threads` | GET | List threads (one per lead with iMessage activity) |
+| `/thread?leadId=X` | GET | Full thread for one lead |
+| `/reply` | POST `{ leadId, phone, message }` | Send a reply, logs to Close |
+
 ## Hooking up SendBlue inbound
 
 In the SendBlue dashboard → **Webhooks** (or `Receive` settings):

@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>iMessage Console — Lushful Aesthetics</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-2: #1d2230;
+    --line: #262c3a;
+    --text: #e7ecf3;
+    --muted: #8a93a6;
+    --accent: #2f7dff;
+    --accent-2: #4f9bff;
+    --in-bubble: #232838;
+    --out-bubble: #2f7dff;
+    --danger: #ff5c5c;
+    --ok: #38d39f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  button, input, textarea { font: inherit; color: inherit; }
+  a { color: var(--accent-2); }
+
+  /* Login screen */
+  .login {
+    min-height: 100dvh;
+    display: grid; place-items: center;
+    padding: 24px;
+  }
+  .login form {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+    width: 100%;
+    max-width: 360px;
+  }
+  .login h1 { margin: 0 0 4px; font-size: 18px; }
+  .login p { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+  .login input {
+    width: 100%; padding: 12px 14px; border-radius: 10px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    margin-bottom: 12px;
+  }
+  .login button {
+    width: 100%; padding: 12px 14px; border-radius: 10px;
+    background: var(--accent); border: 0; color: white; font-weight: 600;
+    cursor: pointer;
+  }
+  .err {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 8px;
+    min-height: 18px;
+  }
+
+  /* App layout */
+  .app { display: grid; grid-template-columns: 320px 1fr; height: 100dvh; }
+  @media (max-width: 720px) { .app { grid-template-columns: 1fr; }
+    .app.has-thread .threads { display: none; }
+    .app:not(.has-thread) .thread { display: none; }
+  }
+
+  .threads {
+    border-right: 1px solid var(--line);
+    background: var(--panel);
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .threads-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel);
+    position: sticky; top: 0;
+  }
+  .threads-head h2 { margin: 0; font-size: 14px; flex: 1; letter-spacing: .02em; }
+  .icon-btn {
+    background: transparent; border: 0; color: var(--muted);
+    padding: 6px 8px; border-radius: 8px; cursor: pointer;
+  }
+  .icon-btn:hover { color: var(--text); background: var(--panel-2); }
+
+  .threads-list { overflow: auto; flex: 1; }
+  .thread-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .thread-item:hover, .thread-item.active { background: var(--panel-2); }
+  .thread-item .name { font-weight: 600; font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
+  .thread-item .name .at { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: auto; }
+  .thread-item .preview {
+    color: var(--muted); font-size: 13px; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .thread-item .preview.outbound::before { content: "↳ "; color: var(--accent-2); }
+  .empty {
+    padding: 24px 16px; color: var(--muted); font-size: 13px; text-align: center;
+  }
+
+  .thread {
+    display: flex; flex-direction: column;
+    min-height: 0;
+    background: var(--bg);
+  }
+  .thread-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel);
+    min-height: 52px;
+  }
+  .thread-head .name { font-weight: 600; }
+  .thread-head .meta { color: var(--muted); font-size: 12px; margin-left: 8px; }
+  .back-btn { display: none; }
+  @media (max-width: 720px) { .back-btn { display: inline-flex; } }
+
+  .messages { flex: 1; overflow: auto; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { max-width: 70%; padding: 8px 12px; border-radius: 16px; line-height: 1.35; word-wrap: break-word; white-space: pre-wrap; }
+  .msg.inbound { background: var(--in-bubble); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .msg.outbound { background: var(--out-bubble); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .msg .at { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
+  .msg.outbound .at { color: rgba(255,255,255,.7); }
+
+  .composer {
+    padding: 12px;
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+    display: flex; gap: 8px; align-items: end;
+  }
+  .composer textarea {
+    flex: 1; resize: none; min-height: 40px; max-height: 160px;
+    padding: 10px 12px; border-radius: 18px;
+    background: var(--panel-2); border: 1px solid var(--line);
+  }
+  .composer button {
+    padding: 10px 16px; border-radius: 18px;
+    background: var(--accent); border: 0; color: white; font-weight: 600; cursor: pointer;
+  }
+  .composer button:disabled { opacity: .5; cursor: not-allowed; }
+
+  .placeholder {
+    flex: 1; display: grid; place-items: center; color: var(--muted); font-size: 14px; text-align: center; padding: 24px;
+  }
+  .toast {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: var(--panel-2); border: 1px solid var(--line);
+    padding: 10px 14px; border-radius: 10px;
+    font-size: 13px;
+    z-index: 50;
+  }
+  .toast.err { border-color: var(--danger); }
+  .toast.ok { border-color: var(--ok); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const API = '/api/sendblue/console'
+
+const state = {
+  authed: false,
+  threads: [],
+  loadingThreads: false,
+  selectedLeadId: null,
+  thread: null,
+  loadingThread: false,
+  sending: false,
+  err: null
+}
+
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag)
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === 'class') el.className = v
+    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v)
+    else if (v !== false && v != null) el.setAttribute(k, v)
+  }
+  for (const c of children.flat()) {
+    if (c == null || c === false) continue
+    el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c)
+  }
+  return el
+}
+
+function formatTime(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const now = new Date()
+  const sameDay = d.toDateString() === now.toDateString()
+  if (sameDay) return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) +
+    ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+
+let toastTimer = null
+function toast(msg, kind = '') {
+  const root = document.body
+  const old = document.querySelector('.toast')
+  if (old) old.remove()
+  const el = h('div', { class: `toast ${kind}` }, msg)
+  root.appendChild(el)
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => el.remove(), 4000)
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, {
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts
+  })
+  if (res.status === 401) {
+    state.authed = false
+    render()
+    throw new Error('unauthorized')
+  }
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+  return data
+}
+
+async function tryRestoreSession() {
+  // Hit a protected endpoint to check the cookie.
+  try {
+    await api('/threads')
+    state.authed = true
+  } catch {
+    state.authed = false
+  }
+}
+
+async function login(password) {
+  const res = await fetch(API + '/login', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || `HTTP ${res.status}`)
+  }
+  state.authed = true
+}
+
+async function logout() {
+  await fetch(API + '/login', { method: 'DELETE', credentials: 'same-origin' })
+  state.authed = false
+  state.threads = []
+  state.thread = null
+  state.selectedLeadId = null
+  render()
+}
+
+async function loadThreads() {
+  state.loadingThreads = true; render()
+  try {
+    const { threads } = await api('/threads')
+    state.threads = threads
+  } catch (err) {
+    toast(`Failed to load threads: ${err.message}`, 'err')
+  } finally {
+    state.loadingThreads = false; render()
+  }
+}
+
+async function selectThread(leadId) {
+  state.selectedLeadId = leadId
+  state.thread = null
+  state.loadingThread = true; render()
+  try {
+    state.thread = await api('/thread?leadId=' + encodeURIComponent(leadId))
+  } catch (err) {
+    toast(`Failed to load thread: ${err.message}`, 'err')
+  } finally {
+    state.loadingThread = false; render()
+    scrollMessagesToBottom()
+  }
+}
+
+async function sendReply(text) {
+  if (!state.thread || !state.thread.replyPhone) {
+    toast('No phone on file to reply to', 'err'); return
+  }
+  state.sending = true; render()
+  try {
+    await api('/reply', {
+      method: 'POST',
+      body: JSON.stringify({
+        leadId: state.thread.leadId,
+        phone: state.thread.replyPhone,
+        message: text
+      })
+    })
+    toast('Sent', 'ok')
+    // Refresh the thread + thread list.
+    await Promise.all([
+      selectThread(state.thread.leadId),
+      loadThreads()
+    ])
+  } catch (err) {
+    toast(`Send failed: ${err.message}`, 'err')
+  } finally {
+    state.sending = false; render()
+  }
+}
+
+function scrollMessagesToBottom() {
+  requestAnimationFrame(() => {
+    const m = document.querySelector('.messages')
+    if (m) m.scrollTop = m.scrollHeight
+  })
+}
+
+function viewLogin() {
+  let errEl
+  const onSubmit = async (e) => {
+    e.preventDefault()
+    errEl.textContent = ''
+    const input = e.target.querySelector('input[name=password]')
+    try {
+      await login(input.value)
+      await loadThreads()
+      render()
+    } catch (err) {
+      errEl.textContent = err.message
+    }
+  }
+  return h('div', { class: 'login' },
+    h('form', { onsubmit: onSubmit },
+      h('h1', {}, 'iMessage Console'),
+      h('p', {}, 'Reply to leads texting your SendBlue line.'),
+      h('input', { name: 'password', type: 'password', placeholder: 'Password', autofocus: true, autocomplete: 'current-password' }),
+      h('button', { type: 'submit' }, 'Sign in'),
+      errEl = h('div', { class: 'err' })
+    )
+  )
+}
+
+function viewThreadsList() {
+  if (state.loadingThreads && state.threads.length === 0) {
+    return h('div', { class: 'empty' }, 'Loading…')
+  }
+  if (state.threads.length === 0) {
+    return h('div', { class: 'empty' }, 'No iMessage conversations yet.')
+  }
+  return h('div', { class: 'threads-list' },
+    state.threads.map(t =>
+      h('div', {
+        class: 'thread-item' + (t.leadId === state.selectedLeadId ? ' active' : ''),
+        onclick: () => selectThread(t.leadId)
+      },
+        h('div', { class: 'name' },
+          t.leadName || t.lastPhone || t.leadId,
+          h('span', { class: 'at' }, formatTime(t.lastAt))
+        ),
+        h('div', { class: 'preview' + (t.lastDirection === 'outbound' ? ' outbound' : '') },
+          t.lastMessage || '(no body)'
+        )
+      )
+    )
+  )
+}
+
+function viewThreadDetail() {
+  if (!state.selectedLeadId) {
+    return h('div', { class: 'placeholder' }, 'Pick a conversation to view.')
+  }
+  if (state.loadingThread || !state.thread) {
+    return h('div', { class: 'placeholder' }, 'Loading…')
+  }
+  const t = state.thread
+
+  let composerEl
+  const onSend = async (e) => {
+    e.preventDefault()
+    const text = composerEl.value.trim()
+    if (!text) return
+    composerEl.value = ''
+    await sendReply(text)
+  }
+
+  return h('div', { class: 'thread' },
+    h('div', { class: 'thread-head' },
+      h('button', { class: 'icon-btn back-btn', title: 'Back', onclick: () => { state.selectedLeadId = null; state.thread = null; render() } }, '←'),
+      h('div', { class: 'name' }, t.leadName || t.replyPhone || t.leadId),
+      h('div', { class: 'meta' }, [t.statusLabel, t.replyPhone].filter(Boolean).join(' · '))
+    ),
+    h('div', { class: 'messages' },
+      t.messages.length === 0
+        ? h('div', { class: 'placeholder' }, 'No messages yet on this lead.')
+        : t.messages.map(m =>
+            h('div', { class: 'msg ' + (m.direction === 'outbound' ? 'outbound' : 'inbound') },
+              m.message || '(no body)',
+              h('span', { class: 'at' }, formatTime(m.at))
+            )
+          )
+    ),
+    h('form', { class: 'composer', onsubmit: onSend },
+      composerEl = h('textarea', {
+        placeholder: t.replyPhone ? `Reply to ${t.replyPhone}…` : 'No phone on file',
+        rows: 1,
+        disabled: !t.replyPhone || state.sending,
+        onkeydown: (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(e) }
+        }
+      }),
+      h('button', { type: 'submit', disabled: !t.replyPhone || state.sending }, state.sending ? '…' : 'Send')
+    )
+  )
+}
+
+function viewApp() {
+  return h('div', { class: 'app' + (state.selectedLeadId ? ' has-thread' : '') },
+    h('div', { class: 'threads' },
+      h('div', { class: 'threads-head' },
+        h('h2', {}, 'Conversations'),
+        h('button', { class: 'icon-btn', title: 'Refresh', onclick: loadThreads }, '↻'),
+        h('button', { class: 'icon-btn', title: 'Sign out', onclick: logout }, '⎋')
+      ),
+      viewThreadsList()
+    ),
+    h('div', { class: 'thread' }, viewThreadDetail())
+  )
+}
+
+function render() {
+  const root = document.getElementById('root')
+  root.innerHTML = ''
+  root.appendChild(state.authed ? viewApp() : viewLogin())
+}
+
+// Poll for new messages every 20s while authed.
+setInterval(() => {
+  if (state.authed && document.visibilityState === 'visible') {
+    loadThreads()
+    if (state.selectedLeadId) {
+      // Don't blow away the open thread, just refresh data silently.
+      api('/thread?leadId=' + encodeURIComponent(state.selectedLeadId))
+        .then(t => { state.thread = t; render() })
+        .catch(() => {})
+    }
+  }
+}, 20000)
+
+;(async () => {
+  await tryRestoreSession()
+  if (state.authed) await loadThreads()
+  render()
+})()
+</script>
+</body>
+</html>
