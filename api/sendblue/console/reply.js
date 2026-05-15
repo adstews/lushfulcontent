@@ -1,5 +1,6 @@
 import { requireAuth } from '../../../lib/auth.js'
 import { sendImessage } from '../../../lib/imessage-bridge.js'
+import { pauseEnrollmentsForLead } from '../../../lib/sequences.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -29,12 +30,24 @@ export default async function handler(req, res) {
       mediaUrl: hasMedia ? mediaUrl : undefined,
       leadId
     })
+
+    // Human reply = take over from any active sequences for this lead.
+    // Best-effort; never fail the send because of this.
+    let sequenceAction = null
+    try {
+      const r = await pauseEnrollmentsForLead(leadId, 'human reply via console')
+      if (r.affected > 0) sequenceAction = `paused-${r.affected}`
+    } catch (err) {
+      console.error('console/reply: auto-pause failed', err)
+    }
+
     return res.status(200).json({
       ok: true,
       phone: result.phone,
       messageHandle: result.send?.message_handle ?? null,
       logged: result.log.ok,
-      logError: result.log.ok ? null : result.log.error
+      logError: result.log.ok ? null : result.log.error,
+      sequenceAction
     })
   } catch (err) {
     console.error('console/reply send failed', err)

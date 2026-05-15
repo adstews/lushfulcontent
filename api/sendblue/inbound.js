@@ -3,6 +3,7 @@ import { findLeadByPhone } from '../../lib/close.js'
 import { logImessageActivity } from '../../lib/imessage-bridge.js'
 import { pushToAll } from '../../lib/web-push.js'
 import { getSupabase } from '../../lib/supabase.js'
+import { pauseEnrollmentsForLead, unenrollAllForLead, isStopKeyword } from '../../lib/sequences.js'
 
 // SendBlue posts incoming messages to this URL. There's no HMAC signature,
 // so we accept a shared secret via either the `X-Webhook-Secret` header or
@@ -136,6 +137,21 @@ export default async function handler(req, res) {
     sendblueHandle
   })
 
+  // Sequence side effects: STOP keyword hard-unenrolls; any other reply
+  // pauses (or unenrolls — depends on each sequence's on_reply_behavior).
+  let sequenceAction = null
+  try {
+    if (isStopKeyword(message)) {
+      await unenrollAllForLead(lead.closeLeadId, 'stop keyword')
+      sequenceAction = 'unenrolled-all-stop'
+    } else {
+      const r = await pauseEnrollmentsForLead(lead.closeLeadId, 'inbound reply')
+      if (r.affected > 0) sequenceAction = `paused-${r.affected}`
+    }
+  } catch (err) {
+    console.error('inbound: sequence auto-pause failed', err)
+  }
+
   let pushResult = { ok: false, sent: 0 }
   try {
     pushResult = await pushToAll({
@@ -155,6 +171,7 @@ export default async function handler(req, res) {
     leadId: lead.closeLeadId,
     logged: logResult.ok,
     logError: logResult.ok ? null : logResult.error,
-    pushed: pushResult.sent || 0
+    pushed: pushResult.sent || 0,
+    sequenceAction
   })
 }

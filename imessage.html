@@ -210,6 +210,65 @@
   .btn-primary { background: var(--accent); color: white; }
   .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
   .btn-ghost { background: transparent; color: var(--muted); }
+
+  /* Sequences */
+  .seq-row {
+    display: flex; gap: 10px; align-items: center;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--panel-2); margin-bottom: 8px;
+  }
+  .seq-row .meta { flex: 1; min-width: 0; }
+  .seq-row .nm { font-weight: 600; }
+  .seq-row .sub { color: var(--muted); font-size: 12px; }
+  .seq-row .actions { display: flex; gap: 4px; }
+  .seq-row .pill {
+    font-size: 11px; padding: 2px 7px; border-radius: 10px;
+    background: var(--panel); color: var(--muted); border: 1px solid var(--line);
+  }
+  .seq-row .pill.on { color: var(--ok); border-color: var(--ok); }
+  .seq-row .pill.off { color: var(--muted); }
+
+  .seq-editor .seq-field { margin-bottom: 12px; }
+  .seq-editor label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .seq-editor input[type=text], .seq-editor input[type=number], .seq-editor select, .seq-editor textarea {
+    width: 100%; padding: 8px 10px; border-radius: 8px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    font-family: inherit;
+  }
+  .seq-editor textarea { resize: vertical; min-height: 70px; }
+  .seq-editor .row { display: flex; gap: 10px; align-items: flex-start; }
+  .seq-editor .row > .seq-field { flex: 1; }
+  .seq-step {
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px; margin-bottom: 8px; background: var(--panel-2);
+  }
+  .seq-step .step-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .seq-step .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: white;
+    display: grid; place-items: center; font-size: 11px; font-weight: 700;
+  }
+  .seq-step .step-head .grow { flex: 1; color: var(--muted); font-size: 12px; }
+
+  /* Thread enrollment banner */
+  .thread-banner {
+    padding: 10px 14px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px;
+  }
+  .thread-banner.paused { background: rgba(255, 92, 92, 0.08); border-bottom-color: var(--danger); }
+  .thread-banner .label { flex: 1; color: var(--muted); }
+  .thread-banner .label strong { color: var(--text); }
+  .thread-banner button {
+    background: transparent; border: 1px solid var(--line);
+    color: var(--text); padding: 4px 10px; border-radius: 8px;
+    cursor: pointer; font-size: 12px;
+  }
+  .thread-banner button:hover { background: var(--panel); }
 </style>
 </head>
 <body>
@@ -231,7 +290,9 @@ const state = {
   notifications: 'unknown', // 'granted' | 'denied' | 'default' | 'unsupported' | 'unknown'
   attachment: null,         // { filename, contentType, dataBase64, previewUrl, kind: 'image'|'video' } pre-send
   reactPicker: null,        // { messageId, messageHandle, phone, currentReaction, x, y }
-  mediaUploader: null       // { uploading: bool, url: string|null, filename: string|null, error: string|null }
+  mediaUploader: null,      // { uploading: bool, url: string|null, filename: string|null, error: string|null }
+  sequencesModal: null,     // { view: 'list'|'edit', sequences: [], editing: seq|null, leadStatuses: [], saving: bool }
+  threadEnrollments: []     // enrollments for the currently selected thread's lead
 }
 
 const REACTION_EMOJI = {
@@ -331,9 +392,12 @@ async function loadThreads() {
 async function selectThread(leadId) {
   state.selectedLeadId = leadId
   state.thread = null
+  state.threadEnrollments = []
   state.loadingThread = true; render()
   try {
     state.thread = await api('/thread?leadId=' + encodeURIComponent(leadId))
+    // Fire-and-forget enrollment lookup so the banner appears as soon as we have it.
+    loadThreadEnrollments(leadId).then(render)
   } catch (err) {
     toast(`Failed to load thread: ${err.message}`, 'err')
   } finally {
@@ -420,6 +484,171 @@ async function sendReply(text) {
     toast(`Send failed: ${err.message}`, 'err')
   } finally {
     state.sending = false; render()
+  }
+}
+
+// ---------- Sequences ---------
+async function openSequencesModal() {
+  state.sequencesModal = { view: 'list', sequences: [], editing: null, saving: false, loading: true }
+  render()
+  try {
+    const { sequences } = await api('/sequences')
+    state.sequencesModal.sequences = sequences
+  } catch (err) {
+    toast(`Failed to load sequences: ${err.message}`, 'err')
+  } finally {
+    state.sequencesModal.loading = false
+    render()
+  }
+}
+function closeSequencesModal() { state.sequencesModal = null; render() }
+
+function newSequenceDraft() {
+  return {
+    id: null,
+    name: '',
+    trigger_type: 'manual',
+    trigger_status_id: '',
+    on_reply_behavior: 'pause',
+    active: true,
+    steps: []
+  }
+}
+
+function startEditSequence(seq) {
+  state.sequencesModal.view = 'edit'
+  state.sequencesModal.editing = seq ? structuredClone(seq) : newSequenceDraft()
+  render()
+}
+
+function addStep() {
+  const e = state.sequencesModal?.editing
+  if (!e) return
+  e.steps.push({ delay_seconds: 0, message_template: '', media_url: '' })
+  render()
+}
+function removeStep(i) {
+  const e = state.sequencesModal?.editing
+  if (!e) return
+  e.steps.splice(i, 1)
+  render()
+}
+function updateStep(i, field, value) {
+  const e = state.sequencesModal?.editing
+  if (!e) return
+  e.steps[i][field] = value
+  // No render — input is the source of truth and React-style re-render would
+  // blow the user's caret position in the textarea.
+}
+
+async function saveSequence() {
+  const e = state.sequencesModal?.editing
+  if (!e) return
+  if (!e.name.trim()) { toast('Name required', 'err'); return }
+  state.sequencesModal.saving = true; render()
+  const payload = {
+    name: e.name.trim(),
+    triggerType: e.trigger_type,
+    triggerStatusId: e.trigger_type === 'lead_status' ? (e.trigger_status_id || null) : null,
+    onReplyBehavior: e.on_reply_behavior,
+    active: e.active,
+    steps: e.steps.map((s, i) => ({
+      delaySeconds: Number(s.delay_seconds) || 0,
+      messageTemplate: s.message_template || null,
+      mediaUrl: s.media_url || null,
+      position: i
+    }))
+  }
+  try {
+    const saved = e.id
+      ? await api('/sequences?id=' + encodeURIComponent(e.id), { method: 'PATCH', body: JSON.stringify(payload) })
+      : await api('/sequences', { method: 'POST', body: JSON.stringify(payload) })
+    toast('Saved', 'ok')
+    state.sequencesModal.view = 'list'
+    state.sequencesModal.editing = null
+    const { sequences } = await api('/sequences')
+    state.sequencesModal.sequences = sequences
+  } catch (err) {
+    toast(`Save failed: ${err.message}`, 'err')
+  } finally {
+    state.sequencesModal.saving = false
+    render()
+  }
+}
+
+async function deleteSequence(seq) {
+  if (!confirm(`Delete sequence "${seq.name}"? This removes its enrollments too.`)) return
+  try {
+    await api('/sequences?id=' + encodeURIComponent(seq.id), { method: 'DELETE' })
+    state.sequencesModal.sequences = state.sequencesModal.sequences.filter(s => s.id !== seq.id)
+    toast('Deleted', 'ok')
+    render()
+  } catch (err) {
+    toast(`Delete failed: ${err.message}`, 'err')
+  }
+}
+
+async function toggleSequenceActive(seq) {
+  try {
+    const updated = await api('/sequences?id=' + encodeURIComponent(seq.id), {
+      method: 'PATCH',
+      body: JSON.stringify({ active: !seq.active })
+    })
+    Object.assign(seq, updated)
+    render()
+  } catch (err) {
+    toast(`Toggle failed: ${err.message}`, 'err')
+  }
+}
+
+// ---------- Per-thread enrollment indicator ---------
+async function loadThreadEnrollments(leadId) {
+  try {
+    const { enrollments } = await api('/enrollments?leadId=' + encodeURIComponent(leadId))
+    state.threadEnrollments = enrollments
+  } catch {
+    state.threadEnrollments = []
+  }
+}
+
+async function enrollmentAction(enrollmentId, action) {
+  try {
+    await api(`/enrollments?action=${action}&id=${encodeURIComponent(enrollmentId)}`, { method: 'POST' })
+    if (state.selectedLeadId) await loadThreadEnrollments(state.selectedLeadId)
+    render()
+  } catch (err) {
+    toast(`${action} failed: ${err.message}`, 'err')
+  }
+}
+
+async function enrollThreadInSequence() {
+  if (!state.thread) return
+  // Open a small picker inline. Reuse the sequences modal in 'pick' view.
+  state.sequencesModal = { view: 'pick', sequences: [], leadId: state.thread.leadId, phone: state.thread.replyPhone, loading: true }
+  render()
+  try {
+    const { sequences } = await api('/sequences')
+    state.sequencesModal.sequences = sequences.filter(s => s.active)
+  } finally {
+    state.sequencesModal.loading = false
+    render()
+  }
+}
+
+async function confirmEnroll(seq) {
+  const m = state.sequencesModal
+  if (!m) return
+  try {
+    await api('/enrollments', {
+      method: 'POST',
+      body: JSON.stringify({ sequenceId: seq.id, leadId: m.leadId, phone: m.phone })
+    })
+    toast(`Enrolled in ${seq.name}`, 'ok')
+    closeSequencesModal()
+    if (state.selectedLeadId) await loadThreadEnrollments(state.selectedLeadId)
+    render()
+  } catch (err) {
+    toast(`Enroll failed: ${err.message}`, 'err')
   }
 }
 
@@ -743,8 +972,10 @@ function viewThreadDetail() {
     h('div', { class: 'thread-head' },
       h('button', { class: 'icon-btn back-btn', title: 'Back', onclick: () => { state.selectedLeadId = null; state.thread = null; render() } }, '←'),
       h('div', { class: 'name' }, t.leadName || t.replyPhone || t.leadId),
-      h('div', { class: 'meta' }, [t.statusLabel, t.replyPhone].filter(Boolean).join(' · '))
+      h('div', { class: 'meta' }, [t.statusLabel, t.replyPhone].filter(Boolean).join(' · ')),
+      h('button', { class: 'icon-btn', title: 'Enroll this lead in a sequence', onclick: enrollThreadInSequence }, '📋')
     ),
+    viewThreadEnrollmentBanner(),
     h('div', { class: 'messages', onclick: closeReactPicker },
       t.messages.length === 0
         ? h('div', { class: 'placeholder' }, 'No messages yet on this lead.')
@@ -845,6 +1076,204 @@ function canSendNow() {
   return !!(c && c.leadId && c.phone && c.message.trim() && !c.sending)
 }
 
+function viewSequencesModal() {
+  if (!state.sequencesModal) return null
+  const m = state.sequencesModal
+
+  if (m.view === 'pick') {
+    return h('div', { class: 'modal-backdrop', onclick: (e) => { if (e.target.classList.contains('modal-backdrop')) closeSequencesModal() } },
+      h('div', { class: 'modal' },
+        h('div', { class: 'modal-head' },
+          h('h3', {}, 'Enroll in sequence'),
+          h('button', { class: 'icon-btn', onclick: closeSequencesModal }, '✕')
+        ),
+        h('div', { class: 'modal-body' },
+          m.loading ? h('div', { class: 'empty' }, 'Loading…') :
+          m.sequences.length === 0 ? h('div', { class: 'empty' }, 'No active sequences. Create one from the 📋 button first.') :
+          m.sequences.map(s =>
+            h('div', { class: 'seq-row' },
+              h('div', { class: 'meta' },
+                h('div', { class: 'nm' }, s.name),
+                h('div', { class: 'sub' }, `${s.trigger_type === 'manual' ? 'Manual trigger' : 'Status trigger'} · on reply: ${s.on_reply_behavior}`)
+              ),
+              h('button', { class: 'btn btn-primary', onclick: () => confirmEnroll(s) }, 'Enroll')
+            )
+          )
+        )
+      )
+    )
+  }
+
+  if (m.view === 'edit') {
+    const e = m.editing
+    if (!e) return null
+    return h('div', { class: 'modal-backdrop', onclick: (ev) => { if (ev.target.classList.contains('modal-backdrop')) { m.view='list'; m.editing=null; render() } } },
+      h('div', { class: 'modal', style: 'max-width: 640px;' },
+        h('div', { class: 'modal-head' },
+          h('h3', {}, e.id ? 'Edit sequence' : 'New sequence'),
+          h('button', { class: 'icon-btn', onclick: () => { m.view='list'; m.editing=null; render() } }, '✕')
+        ),
+        h('div', { class: 'modal-body seq-editor' },
+          h('div', { class: 'seq-field' },
+            h('label', {}, 'Name'),
+            h('input', { type: 'text', value: e.name, placeholder: 'Consult follow-up — 2 weeks', oninput: (ev) => { e.name = ev.target.value } })
+          ),
+          h('div', { class: 'row' },
+            h('div', { class: 'seq-field' },
+              h('label', {}, 'Trigger'),
+              h('select', { value: e.trigger_type, onchange: (ev) => { e.trigger_type = ev.target.value; render() } },
+                h('option', { value: 'manual' }, 'Manual — enroll from inbox'),
+                h('option', { value: 'lead_status' }, 'When Close lead reaches status…')
+              )
+            ),
+            e.trigger_type === 'lead_status'
+              ? h('div', { class: 'seq-field' },
+                  h('label', {}, 'Status ID'),
+                  h('input', { type: 'text', value: e.trigger_status_id || '', placeholder: 'stat_xxx (from Close)', oninput: (ev) => { e.trigger_status_id = ev.target.value } })
+                )
+              : null
+          ),
+          h('div', { class: 'row' },
+            h('div', { class: 'seq-field' },
+              h('label', {}, 'On reply behavior'),
+              h('select', { value: e.on_reply_behavior, onchange: (ev) => { e.on_reply_behavior = ev.target.value } },
+                h('option', { value: 'pause' }, 'Pause (recommended)'),
+                h('option', { value: 'unenroll' }, 'Unenroll permanently'),
+                h('option', { value: 'continue' }, 'Continue anyway')
+              )
+            ),
+            h('div', { class: 'seq-field' },
+              h('label', {}, 'Active'),
+              h('select', { value: e.active ? 'yes' : 'no', onchange: (ev) => { e.active = ev.target.value === 'yes' } },
+                h('option', { value: 'yes' }, 'Active'),
+                h('option', { value: 'no' }, 'Draft / paused')
+              )
+            )
+          ),
+          h('div', { class: 'seq-field' },
+            h('label', {}, 'Steps'),
+            h('div', {},
+              e.steps.length === 0 ? h('div', { class: 'empty' }, 'No steps yet — add your first message.') : null,
+              e.steps.map((s, i) =>
+                h('div', { class: 'seq-step' },
+                  h('div', { class: 'step-head' },
+                    h('div', { class: 'step-num' }, String(i + 1)),
+                    h('div', { class: 'grow' }, `fires at +${formatDelay(s.delay_seconds)}`),
+                    h('button', { class: 'icon-btn', onclick: () => removeStep(i) }, '🗑')
+                  ),
+                  h('div', { class: 'row' },
+                    h('div', { class: 'seq-field' },
+                      h('label', {}, 'Delay from enrollment (seconds)'),
+                      h('input', { type: 'number', min: '0', value: s.delay_seconds, oninput: (ev) => updateStep(i, 'delay_seconds', ev.target.value) })
+                    ),
+                    h('div', { class: 'seq-field' },
+                      h('label', {}, 'Quick set'),
+                      h('select', { value: '', onchange: (ev) => { if (ev.target.value) { s.delay_seconds = Number(ev.target.value); render() } } },
+                        h('option', { value: '' }, '— pick —'),
+                        h('option', { value: '0' }, 'Immediately'),
+                        h('option', { value: '900' }, '15 minutes'),
+                        h('option', { value: '3600' }, '1 hour'),
+                        h('option', { value: '86400' }, '1 day'),
+                        h('option', { value: '172800' }, '2 days'),
+                        h('option', { value: '432000' }, '5 days'),
+                        h('option', { value: '604800' }, '1 week'),
+                        h('option', { value: '1209600' }, '2 weeks')
+                      )
+                    )
+                  ),
+                  h('div', { class: 'seq-field' },
+                    h('label', {}, 'Message (supports {{lead.display_name}}, {{lead.contact.name}})'),
+                    h('textarea', {
+                      placeholder: 'Hi {{lead.display_name}}, …',
+                      value: s.message_template || '',
+                      oninput: (ev) => updateStep(i, 'message_template', ev.target.value)
+                    })
+                  ),
+                  h('div', { class: 'seq-field' },
+                    h('label', {}, 'Media URL (optional — use 🖼️ on the inbox to upload)'),
+                    h('input', { type: 'text', value: s.media_url || '', placeholder: 'https://...', oninput: (ev) => updateStep(i, 'media_url', ev.target.value) })
+                  )
+                )
+              ),
+              h('button', { class: 'btn btn-ghost', style: 'margin-top: 4px;', onclick: addStep }, '+ Add step')
+            )
+          )
+        ),
+        h('div', { class: 'modal-foot' },
+          h('button', { class: 'btn btn-ghost', onclick: () => { m.view='list'; m.editing=null; render() } }, 'Cancel'),
+          h('button', { class: 'btn btn-primary', disabled: m.saving, onclick: saveSequence }, m.saving ? 'Saving…' : 'Save sequence')
+        )
+      )
+    )
+  }
+
+  // Default: list view
+  return h('div', { class: 'modal-backdrop', onclick: (e) => { if (e.target.classList.contains('modal-backdrop')) closeSequencesModal() } },
+    h('div', { class: 'modal', style: 'max-width: 560px;' },
+      h('div', { class: 'modal-head' },
+        h('h3', {}, 'Sequences'),
+        h('button', { class: 'btn btn-primary', onclick: () => startEditSequence(null) }, '+ New'),
+        h('button', { class: 'icon-btn', onclick: closeSequencesModal }, '✕')
+      ),
+      h('div', { class: 'modal-body' },
+        m.loading ? h('div', { class: 'empty' }, 'Loading…') :
+        m.sequences.length === 0 ? h('div', { class: 'empty' }, 'No sequences yet. Create one with + New.') :
+        m.sequences.map(s =>
+          h('div', { class: 'seq-row' },
+            h('div', { class: 'meta' },
+              h('div', { class: 'nm' }, s.name),
+              h('div', { class: 'sub' },
+                (s.trigger_type === 'lead_status' ? `Status: ${s.trigger_status_id}` : 'Manual'),
+                ' · on reply: ',
+                s.on_reply_behavior
+              )
+            ),
+            h('div', { class: 'actions' },
+              h('span', { class: 'pill ' + (s.active ? 'on' : 'off') }, s.active ? 'active' : 'off'),
+              h('button', { class: 'btn btn-ghost', onclick: () => toggleSequenceActive(s) }, s.active ? 'Pause' : 'Activate'),
+              h('button', { class: 'btn btn-ghost', onclick: () => startEditSequence(s) }, 'Edit'),
+              h('button', { class: 'btn btn-ghost', onclick: () => deleteSequence(s) }, 'Delete')
+            )
+          )
+        )
+      )
+    )
+  )
+}
+
+function formatDelay(sec) {
+  sec = Number(sec) || 0
+  if (sec === 0) return 'send immediately'
+  if (sec < 60) return `${sec}s`
+  if (sec < 3600) return `${Math.round(sec/60)} min`
+  if (sec < 86400) return `${Math.round(sec/3600)} hr`
+  return `${Math.round(sec/86400)} day${sec >= 172800 ? 's' : ''}`
+}
+
+function viewThreadEnrollmentBanner() {
+  const enrollments = (state.threadEnrollments || []).filter(e => e.status === 'active' || e.status === 'paused')
+  if (enrollments.length === 0) return null
+  // If multiple, show the most actionable one (paused > active).
+  const e = enrollments.find(x => x.status === 'paused') || enrollments[0]
+  const isPaused = e.status === 'paused'
+  return h('div', { class: 'thread-banner' + (isPaused ? ' paused' : '') },
+    h('div', { class: 'label' },
+      isPaused
+        ? [h('strong', {}, 'Sequence paused'), ` — ${e.paused_reason || 'reply received'}`]
+        : [h('strong', {}, 'Active in sequence'), ` — step ${e.next_step_position + 1}`]
+    ),
+    isPaused
+      ? [
+          h('button', { onclick: () => enrollmentAction(e.id, 'resume') }, 'Resume'),
+          h('button', { onclick: () => enrollmentAction(e.id, 'unenroll') }, 'Remove')
+        ]
+      : [
+          h('button', { onclick: () => enrollmentAction(e.id, 'pause') }, 'Pause'),
+          h('button', { onclick: () => enrollmentAction(e.id, 'unenroll') }, 'Remove')
+        ]
+  )
+}
+
 function viewMediaUploader() {
   if (!state.mediaUploader) return null
   const u = state.mediaUploader
@@ -913,6 +1342,7 @@ function viewApp() {
       h('div', { class: 'threads-head' },
         h('h2', {}, 'Conversations'),
         h('button', { class: 'icon-btn', title: 'New message', onclick: openCompose }, '✎'),
+        h('button', { class: 'icon-btn', title: 'Sequences (drip campaigns)', onclick: openSequencesModal }, '📋'),
         h('button', { class: 'icon-btn', title: 'Upload media for workflows', onclick: openMediaUploader }, '🖼️'),
         h('button', {
           class: 'icon-btn' + (state.notifications === 'granted' ? ' active' : ''),
@@ -927,7 +1357,8 @@ function viewApp() {
     ),
     h('div', { class: 'thread' }, viewThreadDetail()),
     viewCompose(),
-    viewMediaUploader()
+    viewMediaUploader(),
+    viewSequencesModal()
   )
 }
 

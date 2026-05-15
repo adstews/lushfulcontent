@@ -1,3 +1,9 @@
 {
-  "cleanUrls": true
+  "cleanUrls": true,
+  "crons": [
+    {
+      "path": "/api/cron/sequence-tick",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }
