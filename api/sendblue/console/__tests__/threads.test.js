@@ -3,8 +3,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 vi.mock('../../../../lib/close.js', () => ({
   listCustomActivities: vi.fn()
 }))
+vi.mock('../../../../lib/supabase.js', () => ({
+  getSupabase: vi.fn()
+}))
 
 const { listCustomActivities } = await import('../../../../lib/close.js')
+const { getSupabase } = await import('../../../../lib/supabase.js')
+
+function mockReadState(rows) {
+  getSupabase.mockReturnValue({
+    from: () => ({
+      select: () => ({
+        in: () => Promise.resolve({ data: rows, error: null })
+      })
+    })
+  })
+}
 const { makeSessionCookie } = await import('../../../../lib/auth.js')
 const handler = (await import('../threads.js')).default
 
@@ -64,6 +78,7 @@ describe('GET /api/sendblue/console/threads', () => {
         { id: 'a3', lead_id: 'lead_B', 'custom.cf_text': 'hello B', 'custom.cf_dir': 'inbound', 'custom.cf_phone': '+15550000002', date_created: '2026-05-11T10:00:00Z', lead_display_name: 'B Person' }
       ]
     })
+    mockReadState([])
     const res = makeRes()
     await handler(authedReq(), res)
     expect(res.statusCode).toBe(200)
@@ -75,6 +90,39 @@ describe('GET /api/sendblue/console/threads', () => {
       leadName: 'A Person'
     })
     expect(res._json.threads[1].leadId).toBe('lead_B')
+  })
+
+  it('counts unread inbound messages newer than last_read_at', async () => {
+    listCustomActivities.mockResolvedValue({
+      data: [
+        { id: 'a1', lead_id: 'lead_X', 'custom.cf_dir': 'inbound', 'custom.cf_text': 'old',     date_created: '2026-05-10T10:00:00Z' },
+        { id: 'a2', lead_id: 'lead_X', 'custom.cf_dir': 'inbound', 'custom.cf_text': 'new1',    date_created: '2026-05-12T10:00:00Z' },
+        { id: 'a3', lead_id: 'lead_X', 'custom.cf_dir': 'inbound', 'custom.cf_text': 'new2',    date_created: '2026-05-13T10:00:00Z' },
+        { id: 'a4', lead_id: 'lead_X', 'custom.cf_dir': 'outbound', 'custom.cf_text': 'reply',  date_created: '2026-05-13T11:00:00Z' }
+      ]
+    })
+    mockReadState([{ lead_id: 'lead_X', last_read_at: '2026-05-11T00:00:00Z' }])
+    const res = makeRes()
+    await handler(authedReq(), res)
+    expect(res.statusCode).toBe(200)
+    const t = res._json.threads[0]
+    expect(t.leadId).toBe('lead_X')
+    expect(t.unreadCount).toBe(2) // a2, a3 — a4 is outbound, a1 is older
+    expect(t.lastReadAt).toBe('2026-05-11T00:00:00Z')
+  })
+
+  it('treats threads with no read state as all-unread inbound', async () => {
+    listCustomActivities.mockResolvedValue({
+      data: [
+        { id: 'a1', lead_id: 'lead_Y', 'custom.cf_dir': 'inbound', date_created: '2026-05-10T10:00:00Z' },
+        { id: 'a2', lead_id: 'lead_Y', 'custom.cf_dir': 'outbound', date_created: '2026-05-11T10:00:00Z' }
+      ]
+    })
+    mockReadState([])
+    const res = makeRes()
+    await handler(authedReq(), res)
+    expect(res.statusCode).toBe(200)
+    expect(res._json.threads[0].unreadCount).toBe(1)
   })
 
   it('returns 502 when Close fails', async () => {

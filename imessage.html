@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>iMessage Console — Lushful Aesthetics</title>
+
+<link rel="manifest" href="/imessage-manifest.json">
+<meta name="theme-color" content="#0f1115">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="iMessage">
+<link rel="apple-touch-icon" href="/imessage-apple-touch.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/imessage-icon-192.png">
+
 <style>
   :root {
     --bg: #0f1115;
@@ -19,103 +29,64 @@
     --out-bubble: #2f7dff;
     --danger: #ff5c5c;
     --ok: #38d39f;
+    --unread-badge: #ff5c5c;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
     font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
   button, input, textarea { font: inherit; color: inherit; }
   a { color: var(--accent-2); }
 
   /* Login screen */
-  .login {
-    min-height: 100dvh;
-    display: grid; place-items: center;
-    padding: 24px;
-  }
-  .login form {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 28px;
-    width: 100%;
-    max-width: 360px;
-  }
+  .login { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+  .login form { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px; width: 100%; max-width: 360px; }
   .login h1 { margin: 0 0 4px; font-size: 18px; }
   .login p { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
-  .login input {
-    width: 100%; padding: 12px 14px; border-radius: 10px;
-    background: var(--panel-2); border: 1px solid var(--line);
-    margin-bottom: 12px;
-  }
-  .login button {
-    width: 100%; padding: 12px 14px; border-radius: 10px;
-    background: var(--accent); border: 0; color: white; font-weight: 600;
-    cursor: pointer;
-  }
-  .err {
-    color: var(--danger);
-    font-size: 13px;
-    margin-top: 8px;
-    min-height: 18px;
-  }
+  .login input { width: 100%; padding: 12px 14px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); margin-bottom: 12px; }
+  .login button { width: 100%; padding: 12px 14px; border-radius: 10px; background: var(--accent); border: 0; color: white; font-weight: 600; cursor: pointer; }
+  .err { color: var(--danger); font-size: 13px; margin-top: 8px; min-height: 18px; }
 
   /* App layout */
-  .app { display: grid; grid-template-columns: 320px 1fr; height: 100dvh; }
-  @media (max-width: 720px) { .app { grid-template-columns: 1fr; }
+  .app { display: grid; grid-template-columns: 340px 1fr; height: 100dvh; }
+  @media (max-width: 720px) {
+    .app { grid-template-columns: 1fr; }
     .app.has-thread .threads { display: none; }
     .app:not(.has-thread) .thread { display: none; }
   }
 
-  .threads {
-    border-right: 1px solid var(--line);
-    background: var(--panel);
-    display: flex; flex-direction: column;
-    min-height: 0;
-  }
+  .threads { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
   .threads-head {
     padding: 14px 16px;
     border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; gap: 8px;
+    display: flex; align-items: center; gap: 6px;
     background: var(--panel);
     position: sticky; top: 0;
   }
   .threads-head h2 { margin: 0; font-size: 14px; flex: 1; letter-spacing: .02em; }
-  .icon-btn {
-    background: transparent; border: 0; color: var(--muted);
-    padding: 6px 8px; border-radius: 8px; cursor: pointer;
-  }
+  .icon-btn { background: transparent; border: 0; color: var(--muted); padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 16px; }
   .icon-btn:hover { color: var(--text); background: var(--panel-2); }
+  .icon-btn.active { color: var(--accent-2); }
 
   .threads-list { overflow: auto; flex: 1; }
-  .thread-item {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--line);
-    cursor: pointer;
-  }
+  .thread-item { padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer; position: relative; }
   .thread-item:hover, .thread-item.active { background: var(--panel-2); }
   .thread-item .name { font-weight: 600; font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
+  .thread-item.has-unread .name { color: var(--text); }
   .thread-item .name .at { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: auto; }
-  .thread-item .preview {
-    color: var(--muted); font-size: 13px; margin-top: 2px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
+  .thread-item .preview { color: var(--muted); font-size: 13px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 28px; }
+  .thread-item.has-unread .preview { color: var(--text); }
   .thread-item .preview.outbound::before { content: "↳ "; color: var(--accent-2); }
-  .empty {
-    padding: 24px 16px; color: var(--muted); font-size: 13px; text-align: center;
+  .badge {
+    background: var(--unread-badge); color: white;
+    font-size: 11px; font-weight: 700;
+    border-radius: 10px; padding: 2px 7px; min-width: 18px; text-align: center;
+    position: absolute; right: 12px; bottom: 12px;
   }
+  .empty { padding: 24px 16px; color: var(--muted); font-size: 13px; text-align: center; }
 
-  .thread {
-    display: flex; flex-direction: column;
-    min-height: 0;
-    background: var(--bg);
-  }
-  .thread-head {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; gap: 10px;
-    background: var(--panel);
-    min-height: 52px;
-  }
+  .thread { display: flex; flex-direction: column; min-height: 0; background: var(--bg); }
+  .thread-head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; background: var(--panel); min-height: 52px; }
   .thread-head .name { font-weight: 600; }
   .thread-head .meta { color: var(--muted); font-size: 12px; margin-left: 8px; }
   .back-btn { display: none; }
@@ -128,35 +99,59 @@
   .msg .at { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
   .msg.outbound .at { color: rgba(255,255,255,.7); }
 
-  .composer {
-    padding: 12px;
-    border-top: 1px solid var(--line);
-    background: var(--panel);
-    display: flex; gap: 8px; align-items: end;
-  }
-  .composer textarea {
-    flex: 1; resize: none; min-height: 40px; max-height: 160px;
-    padding: 10px 12px; border-radius: 18px;
-    background: var(--panel-2); border: 1px solid var(--line);
-  }
-  .composer button {
-    padding: 10px 16px; border-radius: 18px;
-    background: var(--accent); border: 0; color: white; font-weight: 600; cursor: pointer;
-  }
+  .composer { padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); display: flex; gap: 8px; align-items: end; }
+  .composer textarea { flex: 1; resize: none; min-height: 40px; max-height: 160px; padding: 10px 12px; border-radius: 18px; background: var(--panel-2); border: 1px solid var(--line); }
+  .composer button { padding: 10px 16px; border-radius: 18px; background: var(--accent); border: 0; color: white; font-weight: 600; cursor: pointer; }
   .composer button:disabled { opacity: .5; cursor: not-allowed; }
 
-  .placeholder {
-    flex: 1; display: grid; place-items: center; color: var(--muted); font-size: 14px; text-align: center; padding: 24px;
-  }
-  .toast {
-    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-    background: var(--panel-2); border: 1px solid var(--line);
-    padding: 10px 14px; border-radius: 10px;
-    font-size: 13px;
-    z-index: 50;
-  }
+  .placeholder { flex: 1; display: grid; place-items: center; color: var(--muted); font-size: 14px; text-align: center; padding: 24px; }
+  .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--line); padding: 10px 14px; border-radius: 10px; font-size: 13px; z-index: 50; }
   .toast.err { border-color: var(--danger); }
   .toast.ok { border-color: var(--ok); }
+
+  /* Modal (used for compose) */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    display: grid; place-items: center;
+    padding: 16px; z-index: 100;
+  }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    width: 100%; max-width: 480px;
+    max-height: 86dvh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .modal-head h3 { margin: 0; font-size: 15px; flex: 1; }
+  .modal-body { padding: 14px 16px; overflow: auto; }
+  .modal-body input, .modal-body textarea {
+    width: 100%; padding: 10px 12px; border-radius: 10px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    margin-bottom: 10px;
+  }
+  .modal-body textarea { resize: vertical; min-height: 100px; font-family: inherit; }
+  .modal-body label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .lead-results { max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); margin-bottom: 10px; }
+  .lead-row { padding: 10px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .lead-row:last-child { border-bottom: 0; }
+  .lead-row:hover, .lead-row.active { background: var(--panel); }
+  .lead-row .nm { font-weight: 600; font-size: 14px; }
+  .lead-row .sub { color: var(--muted); font-size: 12px; }
+  .modal-foot {
+    padding: 12px 16px; border-top: 1px solid var(--line);
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+  .btn { padding: 9px 14px; border-radius: 10px; border: 0; cursor: pointer; font-weight: 600; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-ghost { background: transparent; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -173,7 +168,9 @@ const state = {
   thread: null,
   loadingThread: false,
   sending: false,
-  err: null
+  err: null,
+  compose: null,           // { q, searching, results, leadId, phone, message, sending }
+  notifications: 'unknown' // 'granted' | 'denied' | 'default' | 'unsupported' | 'unknown'
 }
 
 function h(tag, attrs, ...children) {
@@ -202,11 +199,10 @@ function formatTime(iso) {
 
 let toastTimer = null
 function toast(msg, kind = '') {
-  const root = document.body
   const old = document.querySelector('.toast')
   if (old) old.remove()
   const el = h('div', { class: `toast ${kind}` }, msg)
-  root.appendChild(el)
+  document.body.appendChild(el)
   clearTimeout(toastTimer)
   toastTimer = setTimeout(() => el.remove(), 4000)
 }
@@ -228,19 +224,13 @@ async function api(path, opts = {}) {
 }
 
 async function tryRestoreSession() {
-  // Hit a protected endpoint to check the cookie.
-  try {
-    await api('/threads')
-    state.authed = true
-  } catch {
-    state.authed = false
-  }
+  try { await api('/threads'); state.authed = true }
+  catch { state.authed = false }
 }
 
 async function login(password) {
   const res = await fetch(API + '/login', {
-    method: 'POST',
-    credentials: 'same-origin',
+    method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password })
   })
@@ -284,28 +274,25 @@ async function selectThread(leadId) {
     state.loadingThread = false; render()
     scrollMessagesToBottom()
   }
+  // Mark thread read (best effort, don't block UI)
+  try {
+    await api('/mark-read', { method: 'POST', body: JSON.stringify({ leadId }) })
+    // Optimistically zero out the unread badge for this lead in our local list
+    const local = state.threads.find(t => t.leadId === leadId)
+    if (local) { local.unreadCount = 0; render() }
+  } catch {}
 }
 
 async function sendReply(text) {
-  if (!state.thread || !state.thread.replyPhone) {
-    toast('No phone on file to reply to', 'err'); return
-  }
+  if (!state.thread || !state.thread.replyPhone) { toast('No phone on file to reply to', 'err'); return }
   state.sending = true; render()
   try {
     await api('/reply', {
       method: 'POST',
-      body: JSON.stringify({
-        leadId: state.thread.leadId,
-        phone: state.thread.replyPhone,
-        message: text
-      })
+      body: JSON.stringify({ leadId: state.thread.leadId, phone: state.thread.replyPhone, message: text })
     })
     toast('Sent', 'ok')
-    // Refresh the thread + thread list.
-    await Promise.all([
-      selectThread(state.thread.leadId),
-      loadThreads()
-    ])
+    await Promise.all([selectThread(state.thread.leadId), loadThreads()])
   } catch (err) {
     toast(`Send failed: ${err.message}`, 'err')
   } finally {
@@ -320,19 +307,119 @@ function scrollMessagesToBottom() {
   })
 }
 
+// ---------- Compose ---------
+function openCompose() {
+  state.compose = { q: '', searching: false, results: [], leadId: null, leadName: null, phone: '', message: '', sending: false }
+  render()
+  setTimeout(() => document.querySelector('.modal input[name=q]')?.focus(), 0)
+}
+function closeCompose() { state.compose = null; render() }
+
+let composeTimer = null
+function onComposeQuery(q) {
+  state.compose.q = q
+  state.compose.leadId = null
+  state.compose.leadName = null
+  clearTimeout(composeTimer)
+  if (!q.trim()) { state.compose.results = []; render(); return }
+  state.compose.searching = true; render()
+  composeTimer = setTimeout(async () => {
+    try {
+      const { leads } = await api('/leads?q=' + encodeURIComponent(q))
+      state.compose.results = leads
+    } catch (err) {
+      toast(`Search failed: ${err.message}`, 'err')
+    } finally {
+      state.compose.searching = false; render()
+    }
+  }, 250)
+}
+function pickComposeLead(lead) {
+  state.compose.leadId = lead.leadId
+  state.compose.leadName = lead.leadName
+  state.compose.phone = lead.phone || ''
+  state.compose.results = []
+  state.compose.q = lead.leadName + (lead.phone ? `  (${lead.phone})` : '')
+  render()
+  setTimeout(() => document.querySelector('.modal textarea')?.focus(), 0)
+}
+async function sendCompose() {
+  const c = state.compose
+  if (!c.leadId) { toast('Pick a lead first', 'err'); return }
+  if (!c.phone) { toast('No phone on the selected lead', 'err'); return }
+  if (!c.message.trim()) return
+  c.sending = true; render()
+  try {
+    await api('/reply', { method: 'POST', body: JSON.stringify({ leadId: c.leadId, phone: c.phone, message: c.message }) })
+    toast('Sent', 'ok')
+    closeCompose()
+    await loadThreads()
+    await selectThread(c.leadId)
+  } catch (err) {
+    toast(`Send failed: ${err.message}`, 'err')
+    c.sending = false; render()
+  }
+}
+
+// ---------- Push notifications ---------
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(base64)
+  const out = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i)
+  return out
+}
+
+async function refreshNotificationState() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    state.notifications = 'unsupported'
+    return
+  }
+  state.notifications = Notification.permission
+}
+
+async function enableNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    toast('Push not supported on this device', 'err'); return
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready
+    let permission = Notification.permission
+    if (permission === 'default') permission = await Notification.requestPermission()
+    if (permission !== 'granted') { state.notifications = permission; render(); return }
+
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      const { publicKey } = await api('/push-subscribe')
+      if (!publicKey) throw new Error('server missing VAPID public key')
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
+      })
+    }
+    const json = sub.toJSON()
+    await api('/push-subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys })
+    })
+    state.notifications = 'granted'
+    toast('Notifications enabled', 'ok')
+    render()
+  } catch (err) {
+    toast(`Push setup failed: ${err.message}`, 'err')
+  }
+}
+
+// ---------- Views ---------
 function viewLogin() {
   let errEl
   const onSubmit = async (e) => {
     e.preventDefault()
     errEl.textContent = ''
     const input = e.target.querySelector('input[name=password]')
-    try {
-      await login(input.value)
-      await loadThreads()
-      render()
-    } catch (err) {
-      errEl.textContent = err.message
-    }
+    try { await login(input.value); await loadThreads(); render() }
+    catch (err) { errEl.textContent = err.message }
   }
   return h('div', { class: 'login' },
     h('form', { onsubmit: onSubmit },
@@ -346,16 +433,14 @@ function viewLogin() {
 }
 
 function viewThreadsList() {
-  if (state.loadingThreads && state.threads.length === 0) {
-    return h('div', { class: 'empty' }, 'Loading…')
-  }
-  if (state.threads.length === 0) {
-    return h('div', { class: 'empty' }, 'No iMessage conversations yet.')
-  }
+  if (state.loadingThreads && state.threads.length === 0) return h('div', { class: 'empty' }, 'Loading…')
+  if (state.threads.length === 0) return h('div', { class: 'empty' }, 'No iMessage conversations yet.')
   return h('div', { class: 'threads-list' },
     state.threads.map(t =>
       h('div', {
-        class: 'thread-item' + (t.leadId === state.selectedLeadId ? ' active' : ''),
+        class: 'thread-item' +
+               (t.leadId === state.selectedLeadId ? ' active' : '') +
+               (t.unreadCount > 0 ? ' has-unread' : ''),
         onclick: () => selectThread(t.leadId)
       },
         h('div', { class: 'name' },
@@ -364,21 +449,17 @@ function viewThreadsList() {
         ),
         h('div', { class: 'preview' + (t.lastDirection === 'outbound' ? ' outbound' : '') },
           t.lastMessage || '(no body)'
-        )
+        ),
+        t.unreadCount > 0 ? h('span', { class: 'badge' }, String(t.unreadCount)) : null
       )
     )
   )
 }
 
 function viewThreadDetail() {
-  if (!state.selectedLeadId) {
-    return h('div', { class: 'placeholder' }, 'Pick a conversation to view.')
-  }
-  if (state.loadingThread || !state.thread) {
-    return h('div', { class: 'placeholder' }, 'Loading…')
-  }
+  if (!state.selectedLeadId) return h('div', { class: 'placeholder' }, 'Pick a conversation to view, or start a new one with ✎.')
+  if (state.loadingThread || !state.thread) return h('div', { class: 'placeholder' }, 'Loading…')
   const t = state.thread
-
   let composerEl
   const onSend = async (e) => {
     e.preventDefault()
@@ -387,7 +468,6 @@ function viewThreadDetail() {
     composerEl.value = ''
     await sendReply(text)
   }
-
   return h('div', { class: 'thread' },
     h('div', { class: 'thread-head' },
       h('button', { class: 'icon-btn back-btn', title: 'Back', onclick: () => { state.selectedLeadId = null; state.thread = null; render() } }, '←'),
@@ -409,26 +489,90 @@ function viewThreadDetail() {
         placeholder: t.replyPhone ? `Reply to ${t.replyPhone}…` : 'No phone on file',
         rows: 1,
         disabled: !t.replyPhone || state.sending,
-        onkeydown: (e) => {
-          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(e) }
-        }
+        onkeydown: (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(e) } }
       }),
       h('button', { type: 'submit', disabled: !t.replyPhone || state.sending }, state.sending ? '…' : 'Send')
     )
   )
 }
 
+function viewCompose() {
+  if (!state.compose) return null
+  const c = state.compose
+  const canSend = !!c.leadId && !!c.phone && !!c.message.trim() && !c.sending
+  return h('div', { class: 'modal-backdrop', onclick: (e) => { if (e.target.classList.contains('modal-backdrop')) closeCompose() } },
+    h('div', { class: 'modal' },
+      h('div', { class: 'modal-head' },
+        h('h3', {}, 'New iMessage'),
+        h('button', { class: 'icon-btn', title: 'Close', onclick: closeCompose }, '✕')
+      ),
+      h('div', { class: 'modal-body' },
+        h('label', {}, 'To'),
+        h('input', {
+          name: 'q', placeholder: 'Search Close by name, email, or phone…',
+          value: c.q,
+          autocomplete: 'off',
+          oninput: (e) => onComposeQuery(e.target.value)
+        }),
+        c.searching ? h('div', { class: 'empty' }, 'Searching…') : null,
+        c.results.length > 0
+          ? h('div', { class: 'lead-results' },
+              c.results.map(r =>
+                h('div', { class: 'lead-row', onclick: () => pickComposeLead(r) },
+                  h('div', { class: 'nm' }, r.leadName || '(no name)'),
+                  h('div', { class: 'sub' }, [r.statusLabel, r.phone].filter(Boolean).join(' · ') || 'no phone on file')
+                )
+              )
+            )
+          : null,
+        c.leadId
+          ? h('div', { class: 'sub', style: 'color: var(--muted); font-size: 12px; margin-bottom: 8px;' },
+              c.phone ? `Sending to ${c.phone}` : 'This lead has no phone on file')
+          : null,
+        h('label', {}, 'Message'),
+        h('textarea', {
+          placeholder: 'Type your message…',
+          value: c.message,
+          disabled: !c.leadId,
+          oninput: (e) => { c.message = e.target.value; document.querySelector('.modal-foot .btn-primary').disabled = !canSendNow() }
+        })
+      ),
+      h('div', { class: 'modal-foot' },
+        h('button', { class: 'btn btn-ghost', onclick: closeCompose }, 'Cancel'),
+        h('button', { class: 'btn btn-primary', disabled: !canSend, onclick: sendCompose }, c.sending ? '…' : 'Send')
+      )
+    )
+  )
+}
+function canSendNow() {
+  const c = state.compose
+  return !!(c && c.leadId && c.phone && c.message.trim() && !c.sending)
+}
+
 function viewApp() {
+  const notifBtnTitle =
+    state.notifications === 'granted' ? 'Notifications on'
+    : state.notifications === 'denied' ? 'Notifications blocked by browser'
+    : state.notifications === 'unsupported' ? 'Notifications not supported here'
+    : 'Enable notifications'
   return h('div', { class: 'app' + (state.selectedLeadId ? ' has-thread' : '') },
     h('div', { class: 'threads' },
       h('div', { class: 'threads-head' },
         h('h2', {}, 'Conversations'),
+        h('button', { class: 'icon-btn', title: 'New message', onclick: openCompose }, '✎'),
+        h('button', {
+          class: 'icon-btn' + (state.notifications === 'granted' ? ' active' : ''),
+          title: notifBtnTitle,
+          onclick: enableNotifications,
+          disabled: state.notifications === 'unsupported'
+        }, state.notifications === 'granted' ? '🔔' : '🔕'),
         h('button', { class: 'icon-btn', title: 'Refresh', onclick: loadThreads }, '↻'),
         h('button', { class: 'icon-btn', title: 'Sign out', onclick: logout }, '⎋')
       ),
       viewThreadsList()
     ),
-    h('div', { class: 'thread' }, viewThreadDetail())
+    h('div', { class: 'thread' }, viewThreadDetail()),
+    viewCompose()
   )
 }
 
@@ -438,12 +582,11 @@ function render() {
   root.appendChild(state.authed ? viewApp() : viewLogin())
 }
 
-// Poll for new messages every 20s while authed.
+// Poll for new messages every 20s while authed and visible.
 setInterval(() => {
   if (state.authed && document.visibilityState === 'visible') {
     loadThreads()
     if (state.selectedLeadId) {
-      // Don't blow away the open thread, just refresh data silently.
       api('/thread?leadId=' + encodeURIComponent(state.selectedLeadId))
         .then(t => { state.thread = t; render() })
         .catch(() => {})
@@ -451,7 +594,18 @@ setInterval(() => {
   }
 }, 20000)
 
+// Service worker: register so the app is installable AND can show push notifications.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/imessage-sw.js', { scope: '/' }).catch(err => {
+    console.warn('SW register failed', err)
+  })
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data?.type === 'open-lead' && e.data.leadId) selectThread(e.data.leadId)
+  })
+}
+
 ;(async () => {
+  await refreshNotificationState()
   await tryRestoreSession()
   if (state.authed) await loadThreads()
   render()

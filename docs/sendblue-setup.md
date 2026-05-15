@@ -169,9 +169,35 @@ Endpoints under `/api/sendblue/console/`:
 | --- | --- | --- |
 | `/login` | POST `{ password }` | Sign in, sets session cookie |
 | `/login` | DELETE | Sign out, clears cookie |
-| `/threads` | GET | List threads (one per lead with iMessage activity) |
+| `/threads` | GET | List threads (with `unreadCount`) sorted by most recent |
 | `/thread?leadId=X` | GET | Full thread for one lead |
 | `/reply` | POST `{ leadId, phone, message }` | Send a reply, logs to Close |
+| `/leads?q=...` | GET | Search Close leads for the compose UI |
+| `/mark-read` | POST `{ leadId, at? }` | Mark a thread read up to a timestamp |
+| `/push-subscribe` | GET | Get VAPID public key |
+| `/push-subscribe` | POST `{ endpoint, keys }` | Register a web-push subscription for this device |
+| `/push-subscribe` | DELETE `{ endpoint }` | Unregister a subscription |
+| `/sendblue-webhooks` | GET | Auth-gated proxy listing SendBlue's configured webhooks |
+
+### Install as a PWA
+
+The console ships a `manifest.json`, service worker, and Apple touch icon, so:
+
+- **iOS / Safari** — open `start.lushfulaesthetics.com/imessage` → Share → "Add to Home Screen". Installed icon opens full-screen.
+- **Android / Chrome** — same page → menu → "Install app".
+- **Desktop Chrome / Edge** — install-app icon in the URL bar.
+
+Once installed and signed in, click the 🔕 icon in the top-right of the inbox to enable web push notifications. New inbound iMessages fire a notification with the lead's name + message body; tapping it opens the thread.
+
+### Required Supabase tables
+
+The console persists per-lead read state and web-push subscriptions in Supabase. Apply this migration on first deploy:
+
+```
+supabase/migrations/20260515000000_imessage_console.sql
+```
+
+Two tables: `imessage_console_read_state` (one row per lead) and `imessage_console_push_subscriptions` (one row per device).
 
 ## Hooking up SendBlue inbound
 

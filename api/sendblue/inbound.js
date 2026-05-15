@@ -1,6 +1,7 @@
 import { normalizePhone } from '../../lib/sendblue.js'
 import { findLeadByPhone } from '../../lib/close.js'
 import { logImessageActivity } from '../../lib/imessage-bridge.js'
+import { pushToAll } from '../../lib/web-push.js'
 
 // SendBlue posts incoming messages to this URL. There's no HMAC signature,
 // so we accept a shared secret via either the `X-Webhook-Secret` header or
@@ -75,12 +76,32 @@ export default async function handler(req, res) {
     sendblueHandle
   })
 
+  // Best-effort fan-out push notification to every active subscription.
+  // Don't block or fail the webhook on push errors — SendBlue will retry if
+  // we 500, and we'd rather log the message than nag.
+  let pushResult = { ok: false, sent: 0 }
+  try {
+    pushResult = await pushToAll({
+      title: lead.displayName || phone,
+      body: message,
+      tag: `lead:${lead.closeLeadId}`,
+      data: {
+        leadId: lead.closeLeadId,
+        phone,
+        url: '/imessage'
+      }
+    })
+  } catch (err) {
+    console.error('inbound push fan-out failed', err)
+  }
+
   return res.status(200).json({
     ok: true,
     matched: true,
     phone,
     leadId: lead.closeLeadId,
     logged: logResult.ok,
-    logError: logResult.ok ? null : logResult.error
+    logError: logResult.ok ? null : logResult.error,
+    pushed: pushResult.sent || 0
   })
 }

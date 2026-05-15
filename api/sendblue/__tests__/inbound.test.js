@@ -6,9 +6,13 @@ vi.mock('../../../lib/close.js', () => ({
 vi.mock('../../../lib/imessage-bridge.js', () => ({
   logImessageActivity: vi.fn()
 }))
+vi.mock('../../../lib/web-push.js', () => ({
+  pushToAll: vi.fn()
+}))
 
 const { findLeadByPhone } = await import('../../../lib/close.js')
 const { logImessageActivity } = await import('../../../lib/imessage-bridge.js')
+const { pushToAll } = await import('../../../lib/web-push.js')
 const handler = (await import('../inbound.js')).default
 
 function makeReqRes(body, { method = 'POST', headers = {}, url = '/api/sendblue/inbound' } = {}) {
@@ -24,6 +28,7 @@ function makeReqRes(body, { method = 'POST', headers = {}, url = '/api/sendblue/
 
 beforeEach(() => {
   delete process.env.SENDBLUE_WEBHOOK_SECRET
+  pushToAll.mockResolvedValue({ ok: true, sent: 0 })
 })
 
 afterEach(() => {
@@ -94,6 +99,7 @@ describe('POST /api/sendblue/inbound', () => {
       displayName: 'Jane'
     })
     logImessageActivity.mockResolvedValue({ ok: true, activityId: 'acti_xyz' })
+    pushToAll.mockResolvedValue({ ok: true, sent: 2, total: 2 })
 
     const { req, res } = makeReqRes({
       from_number: '5550100123',
@@ -113,12 +119,30 @@ describe('POST /api/sendblue/inbound', () => {
       mediaUrl: 'https://example.com/x.jpg',
       sendblueHandle: 'sb_handle_1'
     })
+    expect(pushToAll).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Jane',
+      body: 'hi from iMessage',
+      tag: 'lead:lead_abc'
+    }))
     expect(res._json).toMatchObject({
       ok: true,
       matched: true,
       leadId: 'lead_abc',
-      logged: true
+      logged: true,
+      pushed: 2
     })
+  })
+
+  it('still returns 200 when push fan-out throws', async () => {
+    findLeadByPhone.mockResolvedValue({ closeLeadId: 'lead_z', contactId: null, displayName: 'Z' })
+    logImessageActivity.mockResolvedValue({ ok: true })
+    pushToAll.mockRejectedValue(new Error('push exploded'))
+
+    const { req, res } = makeReqRes({ from_number: '+15550100123', content: 'hi' })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res._json.matched).toBe(true)
+    expect(res._json.pushed).toBe(0)
   })
 
   it('returns 502 when Close lookup throws', async () => {
