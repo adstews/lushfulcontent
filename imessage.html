@@ -93,11 +93,69 @@
   @media (max-width: 720px) { .back-btn { display: inline-flex; } }
 
   .messages { flex: 1; overflow: auto; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
-  .msg { max-width: 70%; padding: 8px 12px; border-radius: 16px; line-height: 1.35; word-wrap: break-word; white-space: pre-wrap; }
+  .msg { max-width: 70%; padding: 8px 12px; border-radius: 16px; line-height: 1.35; word-wrap: break-word; white-space: pre-wrap; position: relative; }
   .msg.inbound { background: var(--in-bubble); align-self: flex-start; border-bottom-left-radius: 4px; }
   .msg.outbound { background: var(--out-bubble); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
   .msg .at { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
   .msg.outbound .at { color: rgba(255,255,255,.7); }
+  .msg .media { display: block; margin: -2px -4px 6px -4px; border-radius: 12px; overflow: hidden; max-width: 100%; }
+  .msg .media img, .msg .media video {
+    display: block; width: 100%; max-height: 360px; object-fit: cover;
+    border-radius: 12px;
+  }
+  .msg .media video { background: black; }
+
+  /* Reaction badges anchored to the top of a bubble */
+  .msg .reactions {
+    position: absolute;
+    top: -10px;
+    display: flex; gap: 3px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 2px 6px;
+    font-size: 13px;
+    line-height: 1;
+    z-index: 1;
+  }
+  .msg.inbound .reactions { left: 8px; }
+  .msg.outbound .reactions { right: 8px; }
+
+  /* Reaction picker popover */
+  .react-picker {
+    position: absolute;
+    display: flex; gap: 4px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 6px 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    z-index: 200;
+  }
+  .react-picker button {
+    background: transparent; border: 0; color: var(--text);
+    font-size: 20px; line-height: 1; padding: 4px 6px; border-radius: 50%;
+    cursor: pointer;
+  }
+  .react-picker button:hover { background: var(--panel-2); }
+  .react-picker .picked { background: var(--out-bubble); }
+
+  /* Attachment preview chip in composer */
+  .attach-preview {
+    display: flex; gap: 8px; align-items: center;
+    padding: 6px 10px; margin-bottom: 6px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 12px; font-size: 13px;
+  }
+  .attach-preview img, .attach-preview video {
+    width: 36px; height: 36px; object-fit: cover; border-radius: 6px;
+  }
+  .attach-preview .filename { flex: 1; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .attach-preview .remove { background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; }
+  .attach-btn { padding: 10px 12px; border-radius: 18px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); cursor: pointer; }
+  .attach-btn:hover { color: var(--text); }
+  .composer-inner { flex: 1; display: flex; flex-direction: column; }
+  .composer { align-items: flex-end; }
 
   .composer { padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); display: flex; gap: 8px; align-items: end; }
   .composer textarea { flex: 1; resize: none; min-height: 40px; max-height: 160px; padding: 10px 12px; border-radius: 18px; background: var(--panel-2); border: 1px solid var(--line); }
@@ -170,7 +228,14 @@ const state = {
   sending: false,
   err: null,
   compose: null,           // { q, searching, results, leadId, phone, message, sending }
-  notifications: 'unknown' // 'granted' | 'denied' | 'default' | 'unsupported' | 'unknown'
+  notifications: 'unknown', // 'granted' | 'denied' | 'default' | 'unsupported' | 'unknown'
+  attachment: null,         // { filename, contentType, dataBase64, previewUrl, kind: 'image'|'video' } pre-send
+  reactPicker: null         // { messageId, messageHandle, phone, currentReaction, x, y }
+}
+
+const REACTION_EMOJI = {
+  love: '❤️', like: '👍', dislike: '👎',
+  laugh: '😂', emphasize: '‼️', question: '❓'
 }
 
 function h(tag, attrs, ...children) {
@@ -283,20 +348,121 @@ async function selectThread(leadId) {
   } catch {}
 }
 
+// Read a File into a base64 string (no data URL prefix).
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => {
+      const result = r.result || ''
+      const idx = String(result).indexOf(',')
+      resolve(idx >= 0 ? String(result).slice(idx + 1) : '')
+    }
+    r.onerror = () => reject(r.error)
+    r.readAsDataURL(file)
+  })
+}
+
+async function attachFile(file) {
+  if (!file) return
+  // Reject anything too large up front (Vercel body limit ~4.5MB; base64 inflates 33%).
+  if (file.size > 3.2 * 1024 * 1024) {
+    toast(`File too large (${(file.size/1024/1024).toFixed(1)}MB) — keep under ~3MB`, 'err')
+    return
+  }
+  const dataBase64 = await fileToBase64(file)
+  const kind = file.type.startsWith('video/') ? 'video' : 'image'
+  state.attachment = {
+    filename: file.name,
+    contentType: file.type,
+    dataBase64,
+    previewUrl: URL.createObjectURL(file),
+    kind
+  }
+  render()
+}
+
+function clearAttachment() {
+  if (state.attachment?.previewUrl) URL.revokeObjectURL(state.attachment.previewUrl)
+  state.attachment = null
+  render()
+}
+
+async function uploadAttachmentIfAny() {
+  if (!state.attachment) return null
+  const { filename, contentType, dataBase64 } = state.attachment
+  const r = await api('/upload', {
+    method: 'POST',
+    body: JSON.stringify({ filename, contentType, dataBase64 })
+  })
+  return r.url
+}
+
 async function sendReply(text) {
   if (!state.thread || !state.thread.replyPhone) { toast('No phone on file to reply to', 'err'); return }
+  if (!text && !state.attachment) return
   state.sending = true; render()
   try {
+    const mediaUrl = await uploadAttachmentIfAny()
     await api('/reply', {
       method: 'POST',
-      body: JSON.stringify({ leadId: state.thread.leadId, phone: state.thread.replyPhone, message: text })
+      body: JSON.stringify({
+        leadId: state.thread.leadId,
+        phone: state.thread.replyPhone,
+        message: text,
+        mediaUrl: mediaUrl || undefined
+      })
     })
     toast('Sent', 'ok')
+    clearAttachment()
     await Promise.all([selectThread(state.thread.leadId), loadThreads()])
   } catch (err) {
     toast(`Send failed: ${err.message}`, 'err')
   } finally {
     state.sending = false; render()
+  }
+}
+
+// ---------- Reactions ---------
+function openReactPicker(msg, anchorEl) {
+  if (!msg.sendblueHandle) {
+    toast('Can’t react to this message (no SendBlue handle)', 'err'); return
+  }
+  // Anchor the popover above the bubble. Use viewport coords so the popover
+  // can render at fixed position regardless of scroll.
+  const rect = anchorEl.getBoundingClientRect()
+  const currentOutbound = msg.reactions?.find(r => r.direction === 'outbound')
+  state.reactPicker = {
+    messageId: msg.id,
+    messageHandle: msg.sendblueHandle,
+    phone: state.thread?.replyPhone,
+    currentReaction: currentOutbound?.reaction || null,
+    x: Math.min(rect.left, window.innerWidth - 280),
+    y: Math.max(rect.top - 50, 8)
+  }
+  render()
+}
+function closeReactPicker() { state.reactPicker = null; render() }
+
+async function pickReaction(reactionType) {
+  const p = state.reactPicker
+  if (!p) return
+  // If they tap the same reaction again, remove it. Otherwise send the new one.
+  const reaction = p.currentReaction === reactionType ? `-${reactionType}` : reactionType
+  closeReactPicker()
+  try {
+    await api('/react', {
+      method: 'POST',
+      body: JSON.stringify({
+        messageHandle: p.messageHandle,
+        phone: p.phone,
+        reaction,
+        leadId: state.thread?.leadId
+      })
+    })
+    // Refresh just the thread (cheap) so the new react appears.
+    await selectThread(state.thread.leadId)
+  } catch (err) {
+    toast(`Reaction failed: ${err.message}`, 'err')
   }
 }
 
@@ -456,43 +622,135 @@ function viewThreadsList() {
   )
 }
 
+function renderMessageBubble(m) {
+  const isOut = m.direction === 'outbound'
+  const children = []
+
+  // Media (image/video) above text
+  if (m.mediaUrl) {
+    const isVideo = /\.(mp4|mov|m4v|webm)(\?|$)/i.test(m.mediaUrl)
+    children.push(h('div', { class: 'media' },
+      isVideo
+        ? h('video', { src: m.mediaUrl, controls: true, playsinline: true, preload: 'metadata' })
+        : h('img', { src: m.mediaUrl, alt: 'attachment', loading: 'lazy' })
+    ))
+  }
+
+  // Reactions overlay
+  const reactions = m.reactions || []
+  if (reactions.length > 0) {
+    children.push(h('div', { class: 'reactions' },
+      reactions.map(r => REACTION_EMOJI[r.reaction] || r.reaction)
+    ))
+  }
+
+  // Body text (allow empty for media-only)
+  if (m.message) children.push(document.createTextNode(m.message))
+  else if (!m.mediaUrl) children.push('(no body)')
+
+  children.push(h('span', { class: 'at' }, formatTime(m.at)))
+
+  const bubble = h('div', {
+    class: 'msg ' + (isOut ? 'outbound' : 'inbound'),
+    oncontextmenu: (e) => { e.preventDefault(); openReactPicker(m, bubble) },
+    ondblclick: () => openReactPicker(m, bubble)
+  }, children)
+
+  // Long-press for mobile (touchstart + 500ms timer)
+  let pressTimer = null
+  bubble.addEventListener('touchstart', () => {
+    pressTimer = setTimeout(() => openReactPicker(m, bubble), 500)
+  }, { passive: true })
+  const cancel = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null } }
+  bubble.addEventListener('touchend', cancel)
+  bubble.addEventListener('touchmove', cancel)
+  bubble.addEventListener('touchcancel', cancel)
+
+  return bubble
+}
+
+function viewReactPicker() {
+  if (!state.reactPicker) return null
+  const p = state.reactPicker
+  const options = ['love', 'like', 'dislike', 'laugh', 'emphasize', 'question']
+  return h('div', {
+    class: 'react-picker',
+    style: `left: ${p.x}px; top: ${p.y}px;`,
+    onclick: (e) => e.stopPropagation()
+  },
+    options.map(r =>
+      h('button', {
+        class: p.currentReaction === r ? 'picked' : '',
+        title: r,
+        onclick: () => pickReaction(r)
+      }, REACTION_EMOJI[r])
+    )
+  )
+}
+
 function viewThreadDetail() {
   if (!state.selectedLeadId) return h('div', { class: 'placeholder' }, 'Pick a conversation to view, or start a new one with ✎.')
   if (state.loadingThread || !state.thread) return h('div', { class: 'placeholder' }, 'Loading…')
   const t = state.thread
-  let composerEl
+  let composerEl, fileInputEl
   const onSend = async (e) => {
     e.preventDefault()
     const text = composerEl.value.trim()
-    if (!text) return
+    if (!text && !state.attachment) return
     composerEl.value = ''
     await sendReply(text)
   }
+  const attached = state.attachment
   return h('div', { class: 'thread' },
     h('div', { class: 'thread-head' },
       h('button', { class: 'icon-btn back-btn', title: 'Back', onclick: () => { state.selectedLeadId = null; state.thread = null; render() } }, '←'),
       h('div', { class: 'name' }, t.leadName || t.replyPhone || t.leadId),
       h('div', { class: 'meta' }, [t.statusLabel, t.replyPhone].filter(Boolean).join(' · '))
     ),
-    h('div', { class: 'messages' },
+    h('div', { class: 'messages', onclick: closeReactPicker },
       t.messages.length === 0
         ? h('div', { class: 'placeholder' }, 'No messages yet on this lead.')
-        : t.messages.map(m =>
-            h('div', { class: 'msg ' + (m.direction === 'outbound' ? 'outbound' : 'inbound') },
-              m.message || '(no body)',
-              h('span', { class: 'at' }, formatTime(m.at))
-            )
-          )
+        : t.messages.map(renderMessageBubble)
     ),
     h('form', { class: 'composer', onsubmit: onSend },
-      composerEl = h('textarea', {
-        placeholder: t.replyPhone ? `Reply to ${t.replyPhone}…` : 'No phone on file',
-        rows: 1,
-        disabled: !t.replyPhone || state.sending,
-        onkeydown: (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(e) } }
+      h('input', {
+        type: 'file',
+        accept: 'image/*,video/mp4,video/quicktime',
+        style: 'display:none',
+        ref: (el) => { fileInputEl = el },
+        onchange: (e) => {
+          const f = e.target.files?.[0]
+          if (f) attachFile(f)
+          e.target.value = ''
+        }
       }),
+      h('div', { class: 'composer-inner' },
+        attached
+          ? h('div', { class: 'attach-preview' },
+              attached.kind === 'video'
+                ? h('video', { src: attached.previewUrl, muted: true })
+                : h('img', { src: attached.previewUrl, alt: 'attachment' }),
+              h('div', { class: 'filename' }, attached.filename),
+              h('button', { class: 'remove', type: 'button', onclick: clearAttachment }, '✕')
+            )
+          : null,
+        composerEl = h('textarea', {
+          placeholder: t.replyPhone ? `Reply to ${t.replyPhone}…` : 'No phone on file',
+          rows: 1,
+          disabled: !t.replyPhone || state.sending,
+          onkeydown: (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(e) } }
+        })
+      ),
+      h('button', {
+        type: 'button',
+        class: 'attach-btn',
+        title: 'Attach photo or video',
+        disabled: !t.replyPhone || state.sending,
+        onclick: () => document.querySelector('.composer input[type=file]')?.click()
+      }, '📎'),
       h('button', { type: 'submit', disabled: !t.replyPhone || state.sending }, state.sending ? '…' : 'Send')
-    )
+    ),
+    viewReactPicker()
   )
 }
 
@@ -593,6 +851,14 @@ setInterval(() => {
     }
   }
 }, 20000)
+
+// Close the reaction picker on Escape or outside click.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.reactPicker) closeReactPicker()
+})
+document.addEventListener('click', (e) => {
+  if (state.reactPicker && !e.target.closest('.react-picker') && !e.target.closest('.msg')) closeReactPicker()
+})
 
 // Service worker: register so the app is installable AND can show push notifications.
 if ('serviceWorker' in navigator) {

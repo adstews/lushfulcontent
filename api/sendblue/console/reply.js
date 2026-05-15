@@ -7,19 +7,28 @@ export default async function handler(req, res) {
   }
   if (!requireAuth(req, res)) return
 
-  const { leadId, phone, message } = req.body || {}
+  const { leadId, phone, message, mediaUrl } = req.body || {}
   if (!leadId || typeof leadId !== 'string') {
     return res.status(400).json({ error: 'leadId required' })
   }
   if (!phone || typeof phone !== 'string') {
     return res.status(400).json({ error: 'phone required' })
   }
-  if (!message || typeof message !== 'string') {
-    return res.status(400).json({ error: 'message required' })
+  // Allow media-only replies (no text). At least one of message or mediaUrl
+  // must be present.
+  const hasMessage = typeof message === 'string' && message.length > 0
+  const hasMedia = typeof mediaUrl === 'string' && mediaUrl.length > 0
+  if (!hasMessage && !hasMedia) {
+    return res.status(400).json({ error: 'message or mediaUrl required' })
   }
 
   try {
-    const result = await sendImessage({ phone, message, leadId })
+    const result = await sendImessage({
+      phone,
+      message: hasMessage ? message : '',
+      mediaUrl: hasMedia ? mediaUrl : undefined,
+      leadId
+    })
     return res.status(200).json({
       ok: true,
       phone: result.phone,

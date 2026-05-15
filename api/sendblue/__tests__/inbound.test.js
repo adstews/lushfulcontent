@@ -9,10 +9,14 @@ vi.mock('../../../lib/imessage-bridge.js', () => ({
 vi.mock('../../../lib/web-push.js', () => ({
   pushToAll: vi.fn()
 }))
+vi.mock('../../../lib/supabase.js', () => ({
+  getSupabase: vi.fn()
+}))
 
 const { findLeadByPhone } = await import('../../../lib/close.js')
 const { logImessageActivity } = await import('../../../lib/imessage-bridge.js')
 const { pushToAll } = await import('../../../lib/web-push.js')
+const { getSupabase } = await import('../../../lib/supabase.js')
 const handler = (await import('../inbound.js')).default
 
 function makeReqRes(body, { method = 'POST', headers = {}, url = '/api/sendblue/inbound' } = {}) {
@@ -29,6 +33,9 @@ function makeReqRes(body, { method = 'POST', headers = {}, url = '/api/sendblue/
 beforeEach(() => {
   delete process.env.SENDBLUE_WEBHOOK_SECRET
   pushToAll.mockResolvedValue({ ok: true, sent: 0 })
+  // Default supabase mock — reaction events insert; tests that care override.
+  const insert = vi.fn().mockResolvedValue({ error: null })
+  getSupabase.mockReturnValue({ from: () => ({ insert }) })
 })
 
 afterEach(() => {
@@ -132,6 +139,50 @@ describe('POST /api/sendblue/inbound', () => {
       logged: true,
       pushed: 2
     })
+  })
+
+  it('handles reaction events: persists + pushes notification', async () => {
+    findLeadByPhone.mockResolvedValue({ closeLeadId: 'lead_r', contactId: null, displayName: 'Reactor' })
+    const insert = vi.fn().mockResolvedValue({ error: null })
+    getSupabase.mockReturnValue({ from: () => ({ insert }) })
+    pushToAll.mockResolvedValue({ ok: true, sent: 1 })
+
+    const { req, res } = makeReqRes({
+      type: 'reaction',
+      from_number: '+15550100123',
+      message_handle: 'sb_target',
+      reaction: 'love'
+    })
+    await handler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    expect(res._json.kind).toBe('reaction')
+    expect(res._json.reaction).toBe('love')
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      message_handle: 'sb_target',
+      lead_id: 'lead_r',
+      direction: 'inbound',
+      reaction: 'love',
+      removed: false
+    }))
+    // logImessageActivity should NOT be called on reaction events
+    expect(logImessageActivity).not.toHaveBeenCalled()
+  })
+
+  it('allows media-only inbound messages (no content)', async () => {
+    findLeadByPhone.mockResolvedValue({ closeLeadId: 'lead_m', contactId: null, displayName: 'M' })
+    logImessageActivity.mockResolvedValue({ ok: true })
+
+    const { req, res } = makeReqRes({
+      from_number: '+15550100123',
+      media_url: 'https://cdn.example.com/x.jpg'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(logImessageActivity).toHaveBeenCalledWith(expect.objectContaining({
+      mediaUrl: 'https://cdn.example.com/x.jpg',
+      message: ''
+    }))
   })
 
   it('still returns 200 when push fan-out throws', async () => {
