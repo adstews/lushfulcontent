@@ -1,24 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-vi.mock('../../../../lib/close.js', () => ({
-  listCustomActivities: vi.fn()
-}))
 vi.mock('../../../../lib/supabase.js', () => ({
   getSupabase: vi.fn()
 }))
 
-const { listCustomActivities } = await import('../../../../lib/close.js')
 const { getSupabase } = await import('../../../../lib/supabase.js')
-
-function mockReadState(rows) {
-  getSupabase.mockReturnValue({
-    from: () => ({
-      select: () => ({
-        in: () => Promise.resolve({ data: rows, error: null })
-      })
-    })
-  })
-}
 const { makeSessionCookie } = await import('../../../../lib/auth.js')
 const handler = (await import('../threads.js')).default
 
@@ -37,17 +23,37 @@ function makeRes() {
   }
 }
 
+// Two-table mock: messages table (chain: select.order.limit) and
+// read_state table (chain: select.in).
+function mockTables({ messages = [], readState = [], readError = null, messagesError = null }) {
+  getSupabase.mockReturnValue({
+    from: (table) => {
+      if (table === 'imessage_console_messages') {
+        return {
+          select: () => ({
+            order: () => ({
+              limit: () => Promise.resolve({ data: messages, error: messagesError })
+            })
+          })
+        }
+      }
+      if (table === 'imessage_console_read_state') {
+        return {
+          select: () => ({
+            in: () => Promise.resolve({ data: readState, error: readError })
+          })
+        }
+      }
+      throw new Error(`unexpected table: ${table}`)
+    }
+  })
+}
+
 beforeEach(() => {
   process.env.REPLY_CONSOLE_SESSION_SECRET = 'this-is-a-long-enough-secret-yes'
-  process.env.CLOSE_CUSTOM_ACTIVITY_IMESSAGE = 'actitype_im'
-  process.env.CLOSE_CF_IMESSAGE_TEXT = 'cf_text'
-  process.env.CLOSE_CF_IMESSAGE_DIRECTION = 'cf_dir'
-  process.env.CLOSE_CF_IMESSAGE_PHONE = 'cf_phone'
 })
 
-afterEach(() => {
-  vi.clearAllMocks()
-})
+afterEach(() => { vi.clearAllMocks() })
 
 describe('GET /api/sendblue/console/threads', () => {
   it('returns 405 on non-GET', async () => {
@@ -63,22 +69,22 @@ describe('GET /api/sendblue/console/threads', () => {
     expect(res.statusCode).toBe(401)
   })
 
-  it('returns 500 when CLOSE_CUSTOM_ACTIVITY_IMESSAGE missing', async () => {
-    delete process.env.CLOSE_CUSTOM_ACTIVITY_IMESSAGE
+  it('returns 500 when supabase fails', async () => {
+    mockTables({ messagesError: { message: 'pg down' } })
     const res = makeRes()
     await handler(authedReq(), res)
     expect(res.statusCode).toBe(500)
   })
 
-  it('groups activities by lead and sorts by most recent', async () => {
-    listCustomActivities.mockResolvedValue({
-      data: [
-        { id: 'a1', lead_id: 'lead_A', 'custom.cf_text': 'first to A', 'custom.cf_dir': 'inbound', 'custom.cf_phone': '+15550000001', date_created: '2026-05-10T10:00:00Z', lead_display_name: 'A Person' },
-        { id: 'a2', lead_id: 'lead_A', 'custom.cf_text': 'latest to A', 'custom.cf_dir': 'outbound', 'custom.cf_phone': '+15550000001', date_created: '2026-05-12T10:00:00Z', lead_display_name: 'A Person' },
-        { id: 'a3', lead_id: 'lead_B', 'custom.cf_text': 'hello B', 'custom.cf_dir': 'inbound', 'custom.cf_phone': '+15550000002', date_created: '2026-05-11T10:00:00Z', lead_display_name: 'B Person' }
+  it('groups messages by lead and sorts by most recent', async () => {
+    mockTables({
+      messages: [
+        // Newest first (matches our query order)
+        { lead_id: 'lead_A', lead_name: 'A Person', direction: 'outbound', message: 'latest to A', phone: '+15550000001', created_at: '2026-05-12T10:00:00Z' },
+        { lead_id: 'lead_B', lead_name: 'B Person', direction: 'inbound', message: 'hello B',     phone: '+15550000002', created_at: '2026-05-11T10:00:00Z' },
+        { lead_id: 'lead_A', lead_name: 'A Person', direction: 'inbound', message: 'first to A',  phone: '+15550000001', created_at: '2026-05-10T10:00:00Z' }
       ]
     })
-    mockReadState([])
     const res = makeRes()
     await handler(authedReq(), res)
     expect(res.statusCode).toBe(200)
@@ -93,42 +99,35 @@ describe('GET /api/sendblue/console/threads', () => {
   })
 
   it('counts unread inbound messages newer than last_read_at', async () => {
-    listCustomActivities.mockResolvedValue({
-      data: [
-        { id: 'a1', lead_id: 'lead_X', 'custom.cf_dir': 'inbound', 'custom.cf_text': 'old',     date_created: '2026-05-10T10:00:00Z' },
-        { id: 'a2', lead_id: 'lead_X', 'custom.cf_dir': 'inbound', 'custom.cf_text': 'new1',    date_created: '2026-05-12T10:00:00Z' },
-        { id: 'a3', lead_id: 'lead_X', 'custom.cf_dir': 'inbound', 'custom.cf_text': 'new2',    date_created: '2026-05-13T10:00:00Z' },
-        { id: 'a4', lead_id: 'lead_X', 'custom.cf_dir': 'outbound', 'custom.cf_text': 'reply',  date_created: '2026-05-13T11:00:00Z' }
-      ]
+    mockTables({
+      messages: [
+        { lead_id: 'lead_X', direction: 'outbound', message: 'reply', created_at: '2026-05-13T11:00:00Z' },
+        { lead_id: 'lead_X', direction: 'inbound',  message: 'new2',  created_at: '2026-05-13T10:00:00Z' },
+        { lead_id: 'lead_X', direction: 'inbound',  message: 'new1',  created_at: '2026-05-12T10:00:00Z' },
+        { lead_id: 'lead_X', direction: 'inbound',  message: 'old',   created_at: '2026-05-10T10:00:00Z' }
+      ],
+      readState: [{ lead_id: 'lead_X', last_read_at: '2026-05-11T00:00:00Z' }]
     })
-    mockReadState([{ lead_id: 'lead_X', last_read_at: '2026-05-11T00:00:00Z' }])
     const res = makeRes()
     await handler(authedReq(), res)
     expect(res.statusCode).toBe(200)
     const t = res._json.threads[0]
     expect(t.leadId).toBe('lead_X')
-    expect(t.unreadCount).toBe(2) // a2, a3 — a4 is outbound, a1 is older
+    expect(t.unreadCount).toBe(2)
     expect(t.lastReadAt).toBe('2026-05-11T00:00:00Z')
   })
 
   it('treats threads with no read state as all-unread inbound', async () => {
-    listCustomActivities.mockResolvedValue({
-      data: [
-        { id: 'a1', lead_id: 'lead_Y', 'custom.cf_dir': 'inbound', date_created: '2026-05-10T10:00:00Z' },
-        { id: 'a2', lead_id: 'lead_Y', 'custom.cf_dir': 'outbound', date_created: '2026-05-11T10:00:00Z' }
-      ]
+    mockTables({
+      messages: [
+        { lead_id: 'lead_Y', direction: 'outbound', message: 'r', created_at: '2026-05-11T10:00:00Z' },
+        { lead_id: 'lead_Y', direction: 'inbound',  message: 'h', created_at: '2026-05-10T10:00:00Z' }
+      ],
+      readState: []
     })
-    mockReadState([])
     const res = makeRes()
     await handler(authedReq(), res)
     expect(res.statusCode).toBe(200)
     expect(res._json.threads[0].unreadCount).toBe(1)
-  })
-
-  it('returns 502 when Close fails', async () => {
-    listCustomActivities.mockRejectedValue(new Error('Close list custom activities failed: 500'))
-    const res = makeRes()
-    await handler(authedReq(), res)
-    expect(res.statusCode).toBe(502)
   })
 })

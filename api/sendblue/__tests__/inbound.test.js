@@ -112,6 +112,7 @@ describe('POST /api/sendblue/inbound', () => {
     expect(findLeadByPhone).toHaveBeenCalledWith('+15550100123')
     expect(logImessageActivity).toHaveBeenCalledWith({
       leadId: 'lead_abc',
+      leadName: 'Jane',
       contactId: 'cont_1',
       direction: 'inbound',
       message: 'hi from iMessage',

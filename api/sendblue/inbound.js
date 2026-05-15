@@ -68,6 +68,7 @@ export default async function handler(req, res) {
 
   const logResult = await logImessageActivity({
     leadId: lead.closeLeadId,
+    leadName: lead.displayName,
     contactId: lead.contactId,
     direction: 'inbound',
     message,
