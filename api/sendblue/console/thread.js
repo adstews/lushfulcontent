@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   let listResult, lead
   try {
     [listResult, lead] = await Promise.all([
-      listCustomActivities({ activityTypeId, leadId, limit: 200 }),
+      listCustomActivities({ activityTypeId, leadId, limit: 100 }),
       getLead(leadId)
     ])
   } catch (err) {
