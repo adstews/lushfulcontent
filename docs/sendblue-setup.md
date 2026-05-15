@@ -148,6 +148,32 @@ In a Close workflow, add an **HTTP request** step:
 Close substitutes the template variables at send time. Use `/outbound` instead
 if you prefer Close's automatic event payload format.
 
+### Sending photos / video from a workflow
+
+Add a `mediaUrl` field to the body — SendBlue downloads the file at send time
+and ships it as an iMessage attachment:
+
+```json
+{
+  "phone": "{{lead.contact.phone}}",
+  "message": "Here's the before/after on our laser treatment",
+  "leadId": "{{lead.id}}",
+  "mediaUrl": "https://iczkztiybsisqklfhmkp.supabase.co/storage/v1/object/public/imessage-media/2026-05-15/abc.jpg"
+}
+```
+
+- `message` becomes optional when `mediaUrl` is present (media-only sends are fine).
+- The URL has to be publicly fetchable — SendBlue downloads it without auth.
+- **Easiest way to get a URL:** sign in to `/imessage`, click 🖼️ in the top
+  of the threads pane, upload your file. You get a permanent Supabase Storage
+  URL plus a copyable JSON snippet for the workflow body.
+- Files are stored at `<supabase-project>.supabase.co/storage/v1/object/public/imessage-media/<date>/<uuid>.<ext>`
+  and never expire (until you delete the file in Supabase Studio).
+- 10 MB hard cap on the storage bucket; the upload UI caps at ~3 MB to fit
+  within Vercel's serverless body limit.
+- Allowed types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`,
+  `image/heic`, `video/mp4`, `video/quicktime`.
+
 ## Reply console (`/imessage`)
 
 A password-gated inbox + reply UI lives at the root of the deploy:

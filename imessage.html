@@ -230,7 +230,8 @@ const state = {
   compose: null,           // { q, searching, results, leadId, phone, message, sending }
   notifications: 'unknown', // 'granted' | 'denied' | 'default' | 'unsupported' | 'unknown'
   attachment: null,         // { filename, contentType, dataBase64, previewUrl, kind: 'image'|'video' } pre-send
-  reactPicker: null         // { messageId, messageHandle, phone, currentReaction, x, y }
+  reactPicker: null,        // { messageId, messageHandle, phone, currentReaction, x, y }
+  mediaUploader: null       // { uploading: bool, url: string|null, filename: string|null, error: string|null }
 }
 
 const REACTION_EMOJI = {
@@ -419,6 +420,43 @@ async function sendReply(text) {
     toast(`Send failed: ${err.message}`, 'err')
   } finally {
     state.sending = false; render()
+  }
+}
+
+// ---------- Workflow media uploader ---------
+function openMediaUploader() {
+  state.mediaUploader = { uploading: false, url: null, filename: null, error: null }
+  render()
+}
+function closeMediaUploader() { state.mediaUploader = null; render() }
+
+async function uploadWorkflowMedia(file) {
+  if (!file) return
+  if (file.size > 3.2 * 1024 * 1024) {
+    state.mediaUploader.error = `File too large (${(file.size/1024/1024).toFixed(1)}MB) — keep under ~3MB`
+    render(); return
+  }
+  state.mediaUploader = { uploading: true, url: null, filename: file.name, error: null }
+  render()
+  try {
+    const dataBase64 = await fileToBase64(file)
+    const r = await api('/upload', {
+      method: 'POST',
+      body: JSON.stringify({ filename: file.name, contentType: file.type, dataBase64 })
+    })
+    state.mediaUploader = { uploading: false, url: r.url, filename: file.name, error: null }
+  } catch (err) {
+    state.mediaUploader = { uploading: false, url: null, filename: file.name, error: err.message }
+  }
+  render()
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text)
+    toast('Copied to clipboard', 'ok')
+  } catch {
+    toast('Couldn’t copy — select the text and copy manually', 'err')
   }
 }
 
@@ -807,6 +845,63 @@ function canSendNow() {
   return !!(c && c.leadId && c.phone && c.message.trim() && !c.sending)
 }
 
+function viewMediaUploader() {
+  if (!state.mediaUploader) return null
+  const u = state.mediaUploader
+  return h('div', { class: 'modal-backdrop', onclick: (e) => { if (e.target.classList.contains('modal-backdrop')) closeMediaUploader() } },
+    h('div', { class: 'modal' },
+      h('div', { class: 'modal-head' },
+        h('h3', {}, 'Upload media for Close workflows'),
+        h('button', { class: 'icon-btn', title: 'Close', onclick: closeMediaUploader }, '✕')
+      ),
+      h('div', { class: 'modal-body' },
+        h('p', { style: 'color: var(--muted); font-size: 13px; margin: 0 0 12px;' },
+          'Pick an image or short video (under ~3MB). You\'ll get a permanent public URL to paste into a Close workflow\'s "mediaUrl" body field.'
+        ),
+        h('input', {
+          type: 'file',
+          accept: 'image/*,video/mp4,video/quicktime',
+          disabled: u.uploading,
+          onchange: (e) => {
+            const f = e.target.files?.[0]
+            if (f) uploadWorkflowMedia(f)
+          }
+        }),
+        u.uploading ? h('div', { class: 'empty' }, 'Uploading…') : null,
+        u.error ? h('div', { class: 'err' }, u.error) : null,
+        u.url
+          ? h('div', { style: 'margin-top: 12px;' },
+              h('label', {}, 'Public URL'),
+              h('input', {
+                value: u.url,
+                readonly: true,
+                onclick: (e) => e.target.select()
+              }),
+              h('div', { style: 'display: flex; gap: 8px; margin-top: 8px; align-items: center;' },
+                h('button', { class: 'btn btn-primary', onclick: () => copyToClipboard(u.url) }, 'Copy URL'),
+                h('a', { href: u.url, target: '_blank', rel: 'noopener', style: 'color: var(--accent-2); font-size: 13px;' }, 'Open in new tab')
+              ),
+              h('p', { style: 'color: var(--muted); font-size: 12px; margin-top: 14px;' },
+                'Paste into a Close workflow HTTP step:'
+              ),
+              h('pre', {
+                style: 'background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12px; overflow: auto; margin: 0;'
+              }, JSON.stringify({
+                phone: '{{lead.contact.phone}}',
+                message: 'Optional caption',
+                leadId: '{{lead.id}}',
+                mediaUrl: u.url
+              }, null, 2))
+            )
+          : null
+      ),
+      h('div', { class: 'modal-foot' },
+        h('button', { class: 'btn btn-ghost', onclick: closeMediaUploader }, 'Done')
+      )
+    )
+  )
+}
+
 function viewApp() {
   const notifBtnTitle =
     state.notifications === 'granted' ? 'Notifications on'
@@ -818,6 +913,7 @@ function viewApp() {
       h('div', { class: 'threads-head' },
         h('h2', {}, 'Conversations'),
         h('button', { class: 'icon-btn', title: 'New message', onclick: openCompose }, '✎'),
+        h('button', { class: 'icon-btn', title: 'Upload media for workflows', onclick: openMediaUploader }, '🖼️'),
         h('button', {
           class: 'icon-btn' + (state.notifications === 'granted' ? ' active' : ''),
           title: notifBtnTitle,
@@ -830,7 +926,8 @@ function viewApp() {
       viewThreadsList()
     ),
     h('div', { class: 'thread' }, viewThreadDetail()),
-    viewCompose()
+    viewCompose(),
+    viewMediaUploader()
   )
 }
 

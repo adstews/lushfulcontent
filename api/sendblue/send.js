@@ -3,12 +3,16 @@ import { sendImessage } from '../../lib/imessage-bridge.js'
 
 const BodySchema = z.object({
   phone: z.string().min(1),
-  message: z.string().min(1),
+  // At least one of message / mediaUrl must be present — enforced after parse.
+  message: z.string().optional().nullable(),
   leadId: z.string().optional().nullable(),
   contactId: z.string().optional().nullable(),
   sendStyle: z.string().optional().nullable(),
   mediaUrl: z.string().url().optional().nullable()
-})
+}).refine(
+  d => (d.message && d.message.length > 0) || (d.mediaUrl && d.mediaUrl.length > 0),
+  { message: 'message or mediaUrl is required' }
+)
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -27,7 +31,7 @@ export default async function handler(req, res) {
   try {
     const result = await sendImessage({
       phone: body.phone,
-      message: body.message,
+      message: body.message ?? '',
       leadId: body.leadId ?? undefined,
       contactId: body.contactId ?? undefined,
       sendStyle: body.sendStyle ?? undefined,

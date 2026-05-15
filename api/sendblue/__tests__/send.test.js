@@ -29,10 +29,35 @@ describe('POST /api/sendblue/send', () => {
     expect(res.statusCode).toBe(405)
   })
 
-  it('returns 400 on missing phone or message', async () => {
+  it('returns 400 on missing phone', async () => {
+    const { req, res } = makeReqRes({ message: 'hi' })
+    await handler(req, res)
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('returns 400 when neither message nor mediaUrl is present', async () => {
     const { req, res } = makeReqRes({ phone: '+15550100123' })
     await handler(req, res)
     expect(res.statusCode).toBe(400)
+  })
+
+  it('accepts media-only sends (no message text)', async () => {
+    sendImessage.mockResolvedValue({
+      send: { message_handle: 'msg_m' },
+      log: { ok: false, error: 'no leadId provided' },
+      phone: '+15550100123'
+    })
+    const { req, res } = makeReqRes({
+      phone: '+15550100123',
+      mediaUrl: 'https://cdn.example.com/x.jpg'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(sendImessage).toHaveBeenCalledWith(expect.objectContaining({
+      phone: '+15550100123',
+      message: '',
+      mediaUrl: 'https://cdn.example.com/x.jpg'
+    }))
   })
 
   it('sends and returns ok', async () => {
