@@ -269,8 +269,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var btn = document.getElementById('depositBtn');
     if (!btn) return;
 
-    // HTML default is the NYC Boulevard URL. Swap to SD only when requested.
-    if (location === 'sd' || location === 'san-diego' || location === 'sandiego') {
+    // HTML default is the NYC Boulevard URL. Swap to SD when requested.
+    // Substring match so Close's Source field (e.g. "girthfill-sd") works
+    // alongside explicit short codes like "sd" / "san-diego" / "sandiego".
+    if (location.indexOf('sd') >= 0 || location.indexOf('san') >= 0) {
       btn.setAttribute('href', 'https://dashboard.boulevard.io/booking/businesses/9475c08d-9b0e-4d05-a8a4-b8ff83db7c5c/widget?path=%2Fcart%2Fmenu%2FPenis%2520Filler%253A%2520GirthFill%25E2%2584%25A2%2Fs_ccd2d17f-9d31-43db-a03c-f8adcad78bd3&locationId=585c82ad-f236-43b3-a5a5-dfebdda60cd9&visitType=SELF_VISIT');
     }
 
