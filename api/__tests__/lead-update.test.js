@@ -47,8 +47,11 @@ function mockSupabase({ leadRow, leadError }) {
 beforeEach(() => {
   process.env.CLOSE_STATUS_QUALIFIED = 'stat_q'
   process.env.CLOSE_STATUS_BAD_FIT = 'stat_bf'
+  process.env.CLOSE_STATUS_CALL_BOOKED = 'stat_call_booked'
+  process.env.CLOSE_STATUS_APPT_BOOKED = 'stat_appt_booked'
   process.env.CLOSE_CF_QUALIFIED = 'cf_q'
   process.env.CLOSE_CF_CTA_CLICKED = 'cf_cta'
+  process.env.CLOSE_CF_BOOKED = 'cf_booked'
 })
 
 afterEach(() => {
@@ -141,7 +144,7 @@ describe('POST /api/lead-update', () => {
     expect(updateLead).not.toHaveBeenCalled()
   })
 
-  it('only updates Close (no Mailchimp tag) when only cta_clicked is sent', async () => {
+  it('cta_clicked=book transitions status to Appt Booked + sets Booked=Appointment', async () => {
     mockSupabase({
       leadRow: {
         id: 'lead-uuid',
@@ -155,8 +158,85 @@ describe('POST /api/lead-update', () => {
     expect(addTags).not.toHaveBeenCalled()
     expect(updateLead).toHaveBeenCalledWith({
       leadId: 'close_x',
-      statusId: undefined,
-      customFields: { cf_cta: 'Book Appointment' }
+      statusId: 'stat_appt_booked',
+      customFields: {
+        cf_cta: 'Book Appointment',
+        cf_booked: 'Appointment'
+      }
     })
+  })
+
+  it('cta_clicked=book-calendly transitions status to Call Booked + sets Booked=Call', async () => {
+    mockSupabase({
+      leadRow: {
+        id: 'lead-uuid',
+        email: 'jane@example.com',
+        source: 'girthfill-landing',
+        close_lead_id: 'close_x'
+      }
+    })
+    const { req, res } = makeReqRes({ lead_id: 'lead-uuid', cta_clicked: 'book-calendly' })
+    await handler(req, res)
+    expect(updateLead).toHaveBeenCalledWith({
+      leadId: 'close_x',
+      statusId: 'stat_call_booked',
+      customFields: {
+        cf_cta: 'Book Appointment',
+        cf_booked: 'Call'
+      }
+    })
+  })
+
+  it('cta_clicked=tap-to-call does not change status or Booked field', async () => {
+    mockSupabase({
+      leadRow: {
+        id: 'lead-uuid',
+        email: 'jane@example.com',
+        source: 'girthfill-landing',
+        close_lead_id: 'close_x'
+      }
+    })
+    const { req, res } = makeReqRes({ lead_id: 'lead-uuid', cta_clicked: 'tap-to-call' })
+    await handler(req, res)
+    expect(updateLead).toHaveBeenCalledWith({
+      leadId: 'close_x',
+      statusId: undefined,
+      customFields: { cf_cta: 'Tap to Call' }
+    })
+  })
+
+  it('accepts close_lead_id (Close ID) as alternative lookup — used by /consultation-book email flow', async () => {
+    const chain = mockSupabase({
+      leadRow: {
+        id: 'sb-uuid-resolved',
+        email: 'jane@example.com',
+        source: 'girthfill-landing',
+        close_lead_id: 'lead_xyz'
+      }
+    })
+    const { req, res } = makeReqRes({
+      close_lead_id: 'lead_xyz',
+      cta_clicked: 'book-calendly'
+    })
+    await handler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    // Close gets updated with the resolved close_lead_id, status transitions to Call Booked
+    expect(updateLead).toHaveBeenCalledWith({
+      leadId: 'lead_xyz',
+      statusId: 'stat_call_booked',
+      customFields: {
+        cf_cta: 'Book Appointment',
+        cf_booked: 'Call'
+      }
+    })
+    // Lookup was done by close_lead_id column (not by Supabase id)
+    expect(chain.eq).toHaveBeenCalledWith('close_lead_id', 'lead_xyz')
+  })
+
+  it('returns 400 when neither lead_id nor close_lead_id is provided', async () => {
+    const { req, res } = makeReqRes({ cta_clicked: 'book-calendly' })
+    await handler(req, res)
+    expect(res.statusCode).toBe(400)
   })
 })

@@ -3,17 +3,28 @@ import { getSupabase } from '../lib/supabase.js'
 import { addTags } from '../lib/mailchimp.js'
 import { updateLead } from '../lib/close.js'
 
+// Either lead_id (Supabase UUID, set when the form first posts) or
+// close_lead_id (the Close lead_xxx id, useful for email-link flows where
+// the email template knows the Close ID via merge tags but not Supabase's).
 const BodySchema = z.object({
-  lead_id: z.string().min(1),
+  lead_id: z.string().optional(),
+  close_lead_id: z.string().optional(),
   qualified: z.boolean().optional(),
-  cta_clicked: z.enum(['book', 'call', 'tap-to-call']).optional()
+  cta_clicked: z.enum(['book', 'book-calendly', 'call', 'tap-to-call']).optional()
 }).refine(
+  d => d.lead_id !== undefined || d.close_lead_id !== undefined,
+  { message: 'one of lead_id or close_lead_id is required' }
+).refine(
   d => d.qualified !== undefined || d.cta_clicked !== undefined,
   { message: 'one of qualified or cta_clicked is required' }
 )
 
+// Map internal cta_clicked values to the labels stored on Close's
+// "CTA Clicked" choice field. book-calendly is a more specific signal
+// (booking actually confirmed) but maps to the same Close choice.
 const CTA_LABELS = {
   'book': 'Book Appointment',
+  'book-calendly': 'Book Appointment',
   'call': 'Schedule a Call',
   'tap-to-call': 'Tap to Call'
 }
@@ -40,11 +51,15 @@ export default async function handler(req, res) {
   const body = parsed.data
   const sb = getSupabase()
 
-  // Fetch the lead so we know email + source + close_lead_id
+  // Fetch the lead so we know email + source + close_lead_id. Look up by
+  // the explicit Supabase id when present, otherwise by Close lead_id (the
+  // path used by email-link flows like /consultation-book).
+  const lookupColumn = body.lead_id ? 'id' : 'close_lead_id'
+  const lookupValue = body.lead_id || body.close_lead_id
   const { data: lead, error: fetchErr } = await sb
     .from('leads')
     .select('id, email, source, close_lead_id')
-    .eq('id', body.lead_id)
+    .eq(lookupColumn, lookupValue)
     .single()
 
   if (fetchErr || !lead) {
@@ -63,12 +78,12 @@ export default async function handler(req, res) {
   const { error: updateErr } = await sb
     .from('leads')
     .update(updates)
-    .eq('id', body.lead_id)
+    .eq('id', lead.id)
   if (updateErr) {
     console.error('supabase update failed', updateErr)
     try {
       const { error: insertErr } = await sb.from('lead_sync_errors').insert({
-        lead_id: body.lead_id,
+        lead_id: lead.id,
         service: 'supabase',
         operation: 'update',
         error_message: updateErr.message,
@@ -102,6 +117,16 @@ export default async function handler(req, res) {
       if (body.cta_clicked !== undefined) {
         requiredCloseEnvVars.push('CLOSE_CF_CTA_CLICKED')
       }
+      // Auto-progress status + set the Booked field on confirmed bookings.
+      // book-calendly fires after the user actually completes a Calendly
+      // event_scheduled; book fires when they click into the JoinBlvd
+      // deposit page (intent, not yet confirmed payment).
+      if (body.cta_clicked === 'book-calendly') {
+        requiredCloseEnvVars.push('CLOSE_STATUS_CALL_BOOKED', 'CLOSE_CF_BOOKED')
+      }
+      if (body.cta_clicked === 'book') {
+        requiredCloseEnvVars.push('CLOSE_STATUS_APPT_BOOKED', 'CLOSE_CF_BOOKED')
+      }
       const missingVars = requiredCloseEnvVars.filter(v => !process.env[v])
       if (missingVars.length > 0) {
         throw new Error(`Close env vars missing: ${missingVars.join(', ')}`)
@@ -117,6 +142,13 @@ export default async function handler(req, res) {
       }
       if (body.cta_clicked !== undefined) {
         customFields[process.env.CLOSE_CF_CTA_CLICKED] = CTA_LABELS[body.cta_clicked]
+      }
+      if (body.cta_clicked === 'book-calendly') {
+        customFields[process.env.CLOSE_CF_BOOKED] = 'Call'
+        statusId = process.env.CLOSE_STATUS_CALL_BOOKED
+      } else if (body.cta_clicked === 'book') {
+        customFields[process.env.CLOSE_CF_BOOKED] = 'Appointment'
+        statusId = process.env.CLOSE_STATUS_APPT_BOOKED
       }
       await updateLead({
         leadId: lead.close_lead_id,
@@ -135,7 +167,7 @@ export default async function handler(req, res) {
       const service = err?.service ?? 'unknown'
       try {
         const { error: insertErr } = await sb.from('lead_sync_errors').insert({
-          lead_id: body.lead_id,
+          lead_id: lead.id,
           service,
           operation: 'update',
           error_message: String(err?.message || err),
