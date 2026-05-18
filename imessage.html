@@ -219,7 +219,13 @@
   }
   .seq-row .meta { flex: 1; min-width: 0; }
   .seq-row .nm { font-weight: 600; }
-  .seq-row .sub { color: var(--muted); font-size: 12px; }
+  .seq-row .sub {
+    color: var(--muted);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .seq-row .actions { display: flex; gap: 4px; }
   .seq-row .pill {
     font-size: 11px; padding: 2px 7px; border-radius: 10px;
@@ -505,17 +511,31 @@ async function sendReply(text) {
 
 // ---------- Sequences ---------
 async function openSequencesModal() {
-  state.sequencesModal = { view: 'list', sequences: [], editing: null, saving: false, loading: true }
+  state.sequencesModal = { view: 'list', sequences: [], editing: null, leadStatuses: [], saving: false, loading: true }
   render()
-  try {
-    const { sequences } = await api('/sequences')
-    state.sequencesModal.sequences = sequences
-  } catch (err) {
-    toast(`Failed to load sequences: ${err.message}`, 'err')
-  } finally {
-    state.sequencesModal.loading = false
-    render()
+  // Fetch sequences + Close lead statuses in parallel — statuses are used to
+  // resolve trigger_status_id to a human label in the list + edit views.
+  const [seqRes, statRes] = await Promise.allSettled([
+    api('/sequences'),
+    api('/lead-statuses')
+  ])
+  if (seqRes.status === 'fulfilled') {
+    state.sequencesModal.sequences = seqRes.value.sequences
+  } else {
+    toast(`Failed to load sequences: ${seqRes.reason?.message || seqRes.reason}`, 'err')
   }
+  if (statRes.status === 'fulfilled') {
+    state.sequencesModal.leadStatuses = statRes.value.statuses || []
+  }
+  state.sequencesModal.loading = false
+  render()
+}
+
+function statusLabelFor(statusId) {
+  const m = state.sequencesModal
+  if (!statusId || !m) return statusId || ''
+  const found = (m.leadStatuses || []).find(s => s.id === statusId)
+  return found ? found.label : statusId
 }
 function closeSequencesModal() { state.sequencesModal = null; render() }
 
@@ -531,10 +551,34 @@ function newSequenceDraft() {
   }
 }
 
-function startEditSequence(seq) {
+async function startEditSequence(seq) {
+  // For a new draft we can transition immediately. For an existing sequence
+  // the list-row only carries the parent record — fetch the full sequence so
+  // `editing.steps` is populated (the editor blows up without it).
+  if (!seq) {
+    state.sequencesModal.view = 'edit'
+    state.sequencesModal.editing = newSequenceDraft()
+    render()
+    return
+  }
   state.sequencesModal.view = 'edit'
-  state.sequencesModal.editing = seq ? structuredClone(seq) : newSequenceDraft()
+  state.sequencesModal.editing = { ...structuredClone(seq), steps: [] }
+  state.sequencesModal.loading = true
   render()
+  try {
+    const full = await api('/sequences?id=' + encodeURIComponent(seq.id))
+    state.sequencesModal.editing = structuredClone({
+      ...full,
+      steps: Array.isArray(full.steps) ? full.steps : []
+    })
+  } catch (err) {
+    toast(`Failed to load sequence: ${err.message}`, 'err')
+    state.sequencesModal.view = 'list'
+    state.sequencesModal.editing = null
+  } finally {
+    state.sequencesModal.loading = false
+    render()
+  }
 }
 
 function addStep() {
@@ -1144,8 +1188,16 @@ function viewSequencesModal() {
             ),
             e.trigger_type === 'lead_status'
               ? h('div', { class: 'seq-field' },
-                  h('label', {}, 'Status ID'),
-                  h('input', { type: 'text', value: e.trigger_status_id || '', placeholder: 'stat_xxx (from Close)', oninput: (ev) => { e.trigger_status_id = ev.target.value } })
+                  h('label', {}, 'Close lead status'),
+                  h('select', {
+                    value: e.trigger_status_id || '',
+                    onchange: (ev) => { e.trigger_status_id = ev.target.value; render() }
+                  }, [
+                    h('option', { value: '' }, '— pick a status —'),
+                    ...(m.leadStatuses || []).map(s =>
+                      h('option', { value: s.id }, s.label)
+                    )
+                  ])
                 )
               : null
           ),
@@ -1239,7 +1291,9 @@ function viewSequencesModal() {
             h('div', { class: 'meta' },
               h('div', { class: 'nm' }, s.name),
               h('div', { class: 'sub' },
-                (s.trigger_type === 'lead_status' ? `Status: ${s.trigger_status_id}` : 'Manual'),
+                (s.trigger_type === 'lead_status'
+                  ? `Status: ${statusLabelFor(s.trigger_status_id)}`
+                  : 'Manual'),
                 ' · on reply: ',
                 s.on_reply_behavior
               )
