@@ -129,8 +129,11 @@ export default async function handler(req, res) {
         'CLOSE_CF_UTM_MEDIUM',
         'CLOSE_CF_UTM_CAMPAIGN',
         'CLOSE_CF_UTM_CONTENT',
+        'CLOSE_CF_UTM_TERM',
         'CLOSE_CF_FBCLID',
-        'CLOSE_CF_GCLID'
+        'CLOSE_CF_GCLID',
+        'CLOSE_CF_REFERRER',
+        'CLOSE_CF_LANDING_PAGE'
       ]
       if (body.qualified !== undefined) requiredCloseEnvVars.push('CLOSE_CF_QUALIFIED')
       const missingVars = requiredCloseEnvVars.filter(v => !process.env[v])
@@ -145,8 +148,11 @@ export default async function handler(req, res) {
         ['CLOSE_CF_UTM_MEDIUM', body.utm_medium],
         ['CLOSE_CF_UTM_CAMPAIGN', body.utm_campaign],
         ['CLOSE_CF_UTM_CONTENT', body.utm_content],
+        ['CLOSE_CF_UTM_TERM', body.utm_term],
         ['CLOSE_CF_FBCLID', body.fbclid],
-        ['CLOSE_CF_GCLID', body.gclid]
+        ['CLOSE_CF_GCLID', body.gclid],
+        ['CLOSE_CF_REFERRER', body.referrer],
+        ['CLOSE_CF_LANDING_PAGE', body.landing_page]
       ]
       for (const [envName, value] of optionalFields) {
         if (value) customFields[process.env[envName]] = value

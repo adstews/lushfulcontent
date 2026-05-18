@@ -50,8 +50,11 @@ beforeEach(() => {
   process.env.CLOSE_CF_UTM_MEDIUM = 'cf_utmm'
   process.env.CLOSE_CF_UTM_CAMPAIGN = 'cf_utmc'
   process.env.CLOSE_CF_UTM_CONTENT = 'cf_utmcon'
+  process.env.CLOSE_CF_UTM_TERM = 'cf_utmt'
   process.env.CLOSE_CF_FBCLID = 'cf_fb'
   process.env.CLOSE_CF_GCLID = 'cf_gc'
+  process.env.CLOSE_CF_REFERRER = 'cf_ref'
+  process.env.CLOSE_CF_LANDING_PAGE = 'cf_lp'
 })
 
 afterEach(() => {
@@ -157,7 +160,7 @@ describe('POST /api/lead', () => {
       phone: null,
       source: 'girthfill-landing',
       utm_source: 'meta'
-      // no utm_medium, utm_campaign, utm_content, fbclid, gclid
+      // no utm_medium, utm_campaign, utm_content, utm_term, fbclid, gclid, referrer, landing_page
     })
     await handler(req, res)
 
@@ -169,8 +172,76 @@ describe('POST /api/lead', () => {
     expect(Object.keys(customFields)).not.toContain('cf_utmm')
     expect(Object.keys(customFields)).not.toContain('cf_utmc')
     expect(Object.keys(customFields)).not.toContain('cf_utmcon')
+    expect(Object.keys(customFields)).not.toContain('cf_utmt')
     expect(Object.keys(customFields)).not.toContain('cf_fb')
     expect(Object.keys(customFields)).not.toContain('cf_gc')
+    expect(Object.keys(customFields)).not.toContain('cf_ref')
+    expect(Object.keys(customFields)).not.toContain('cf_lp')
+  })
+
+  it('forwards utm_term, referrer, and landing_page to Close customFields', async () => {
+    mockSupabase({
+      upsertResult: { data: { id: 'lead-uuid-attr' }, error: null }
+    })
+    upsertSubscriber.mockResolvedValue({ subscriberHash: 'h' })
+    addTags.mockResolvedValue()
+    createLead.mockResolvedValue({ closeLeadId: 'close_lead_attr' })
+
+    const { req, res } = makeReqRes({
+      name: 'Attribution Tester',
+      email: 'attr@example.com',
+      phone: '555-0303',
+      source: 'girthfill-nyc',
+      utm_source: 'meta',
+      utm_medium: 'cpc',
+      utm_campaign: 'q2_girthfill',
+      utm_content: 'hero_video',
+      utm_term: 'penis enlargement nyc',
+      fbclid: 'fb.1.abc',
+      gclid: 'EAIaIQobChMI.gclid.xyz',
+      referrer: 'https://www.facebook.com/',
+      landing_page: 'https://lushfulcontent.vercel.app/girthfill-nyc?utm_source=meta&utm_campaign=q2_girthfill'
+    })
+    await handler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    expect(createLead).toHaveBeenCalledTimes(1)
+    const { customFields } = createLead.mock.calls[0][0]
+    expect(customFields['cf_src']).toBe('girthfill-nyc')
+    expect(customFields['cf_utms']).toBe('meta')
+    expect(customFields['cf_utmm']).toBe('cpc')
+    expect(customFields['cf_utmc']).toBe('q2_girthfill')
+    expect(customFields['cf_utmcon']).toBe('hero_video')
+    expect(customFields['cf_utmt']).toBe('penis enlargement nyc')
+    expect(customFields['cf_fb']).toBe('fb.1.abc')
+    expect(customFields['cf_gc']).toBe('EAIaIQobChMI.gclid.xyz')
+    expect(customFields['cf_ref']).toBe('https://www.facebook.com/')
+    expect(customFields['cf_lp']).toBe('https://lushfulcontent.vercel.app/girthfill-nyc?utm_source=meta&utm_campaign=q2_girthfill')
+  })
+
+  it('errors out (logged to lead_sync_errors) when new required Close env vars are missing', async () => {
+    delete process.env.CLOSE_CF_REFERRER
+    const chain = mockSupabase({
+      upsertResult: { data: { id: 'lead-uuid-missing' }, error: null }
+    })
+    upsertSubscriber.mockResolvedValue({ subscriberHash: 'h' })
+    addTags.mockResolvedValue()
+
+    const { req, res } = makeReqRes({
+      name: 'X',
+      email: 'x@y.com',
+      phone: null,
+      source: 'girthfill-landing'
+    })
+    await handler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    expect(createLead).not.toHaveBeenCalled()
+    expect(chain.insert).toHaveBeenCalledWith(expect.objectContaining({
+      service: 'close',
+      operation: 'create',
+      error_message: expect.stringContaining('CLOSE_CF_REFERRER')
+    }))
   })
 
   it('still returns success when Mailchimp fails (best-effort)', async () => {
