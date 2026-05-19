@@ -733,7 +733,28 @@ src="https://www.facebook.com/tr?id=24843507025240186&ev=PageView&noscript=1"
     .hero { flex-direction: column; padding: 60px 24px 80px; gap: 40px; }
     .hero h1 { font-size: 36px; }
     .hero-image { width: 100%; }
-    .steps { grid-template-columns: repeat(2, 1fr); }
+    /* Steps become a swipe-through carousel on mobile — the 4-step grid is
+       too text-heavy in a 2x2 on small screens. */
+    .steps {
+      display: flex;
+      grid-template-columns: none;
+      gap: 16px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 4px 20px 20px;
+      margin: 0 -20px;
+      scrollbar-width: none;
+    }
+    .steps::-webkit-scrollbar { display: none; }
+    .step {
+      flex: 0 0 80%;
+      max-width: 320px;
+      scroll-snap-align: center;
+      background: var(--cream);
+      border-radius: 16px;
+      padding: 28px 22px;
+    }
     .benefits-grid { grid-template-columns: 1fr; }
     .testimonials-grid { grid-template-columns: 1fr; }
     .expert-section { flex-direction: column; }
