@@ -10,13 +10,14 @@ const BodySchema = z.object({
   lead_id: z.string().optional(),
   close_lead_id: z.string().optional(),
   qualified: z.boolean().optional(),
-  cta_clicked: z.enum(['book', 'book-calendly', 'call', 'tap-to-call']).optional()
+  cta_clicked: z.enum(['book', 'book-calendly', 'call', 'tap-to-call']).optional(),
+  travel_status: z.enum(['local', 'willing_to_travel', 'declined_travel']).optional()
 }).refine(
   d => d.lead_id !== undefined || d.close_lead_id !== undefined,
   { message: 'one of lead_id or close_lead_id is required' }
 ).refine(
-  d => d.qualified !== undefined || d.cta_clicked !== undefined,
-  { message: 'one of qualified or cta_clicked is required' }
+  d => d.qualified !== undefined || d.cta_clicked !== undefined || d.travel_status !== undefined,
+  { message: 'one of qualified, cta_clicked, or travel_status is required' }
 )
 
 // Map internal cta_clicked values to the labels stored on Close's
@@ -27,6 +28,12 @@ const CTA_LABELS = {
   'book-calendly': 'Book Appointment',
   'call': 'Schedule a Call',
   'tap-to-call': 'Tap to Call'
+}
+
+const TRAVEL_STATUS_LABELS = {
+  'local': 'Local',
+  'willing_to_travel': 'Willing to Travel',
+  'declined_travel': 'Declined Travel'
 }
 
 function taggedTask(service, fn) {
@@ -75,6 +82,9 @@ export default async function handler(req, res) {
   if (body.cta_clicked !== undefined) {
     updates.cta_clicked = body.cta_clicked
   }
+  if (body.travel_status !== undefined) {
+    updates.travel_status = body.travel_status
+  }
   const { error: updateErr } = await sb
     .from('leads')
     .update(updates)
@@ -117,6 +127,9 @@ export default async function handler(req, res) {
       if (body.cta_clicked !== undefined) {
         requiredCloseEnvVars.push('CLOSE_CF_CTA_CLICKED')
       }
+      if (body.travel_status !== undefined) {
+        requiredCloseEnvVars.push('CLOSE_CF_TRAVEL_STATUS')
+      }
       // Auto-progress status + set the Booked field on confirmed bookings.
       // book-calendly fires after the user actually completes a Calendly
       // event_scheduled; book fires when they click into the JoinBlvd
@@ -142,6 +155,9 @@ export default async function handler(req, res) {
       }
       if (body.cta_clicked !== undefined) {
         customFields[process.env.CLOSE_CF_CTA_CLICKED] = CTA_LABELS[body.cta_clicked]
+      }
+      if (body.travel_status !== undefined) {
+        customFields[process.env.CLOSE_CF_TRAVEL_STATUS] = TRAVEL_STATUS_LABELS[body.travel_status]
       }
       if (body.cta_clicked === 'book-calendly') {
         customFields[process.env.CLOSE_CF_BOOKED] = 'Call'

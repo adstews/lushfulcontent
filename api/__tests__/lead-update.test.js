@@ -239,4 +239,73 @@ describe('POST /api/lead-update', () => {
     await handler(req, res)
     expect(res.statusCode).toBe(400)
   })
+
+  it('writes travel_status to Close custom field', async () => {
+    process.env.CLOSE_CF_TRAVEL_STATUS = 'cf_ts'
+    mockSupabase({
+      leadRow: {
+        id: '00000000-0000-0000-0000-000000000000',
+        email: 'a@b.com',
+        source: 'girthfill-nyc',
+        close_lead_id: 'lead_abc'
+      }
+    })
+    updateLead.mockResolvedValue({})
+    const { req, res } = makeReqRes({
+      lead_id: '00000000-0000-0000-0000-000000000000',
+      travel_status: 'willing_to_travel'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(updateLead).toHaveBeenCalledWith(expect.objectContaining({
+      leadId: 'lead_abc',
+      customFields: expect.objectContaining({ cf_ts: 'Willing to Travel' })
+    }))
+  })
+
+  it('accepts travel_status as the sole mutation', async () => {
+    process.env.CLOSE_CF_TRAVEL_STATUS = 'cf_ts'
+    mockSupabase({
+      leadRow: {
+        id: '00000000-0000-0000-0000-000000000000',
+        email: 'a@b.com',
+        source: 'girthfill-nyc',
+        close_lead_id: 'lead_abc'
+      }
+    })
+    const { req, res } = makeReqRes({
+      lead_id: '00000000-0000-0000-0000-000000000000',
+      travel_status: 'local'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+  })
+
+  it('combines declined_travel with qualified=false', async () => {
+    process.env.CLOSE_CF_TRAVEL_STATUS = 'cf_ts'
+    mockSupabase({
+      leadRow: {
+        id: '00000000-0000-0000-0000-000000000000',
+        email: 'a@b.com',
+        source: 'girthfill-nyc',
+        close_lead_id: 'lead_abc'
+      }
+    })
+    updateLead.mockResolvedValue({})
+    addTags.mockResolvedValue({})
+    const { req, res } = makeReqRes({
+      lead_id: '00000000-0000-0000-0000-000000000000',
+      qualified: false,
+      travel_status: 'declined_travel'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(updateLead).toHaveBeenCalledWith(expect.objectContaining({
+      statusId: 'stat_bf',
+      customFields: expect.objectContaining({
+        cf_q: 'No',
+        cf_ts: 'Declined Travel'
+      })
+    }))
+  })
 })
