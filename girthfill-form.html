@@ -375,6 +375,7 @@ function gtag_report_conversion(url) {
   }
 </style>
 <script src="/js/attribution.js"></script>
+<script src="/js/geo-gate.js"></script>
 </head>
 <body>
 <!-- Google Tag Manager (noscript) -->
@@ -422,6 +423,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="formError" style="color: #c44; font-size: 0.85rem; min-height: 1.2em; margin-bottom: 0.5rem;"></div>
     <button class="form-submit" onclick="submitContact(event)">Continue</button>
     <p class="consent-line">By submitting you agree to receive occasional emails from Lushful Aesthetics. Unsubscribe anytime.</p>
+  </div>
+
+  <!-- Conditional Step: visitors who appear to be out of the anchor city
+       get one confirmation before reaching the booking options. Hidden by
+       default; submitContact triggers it only when evaluateGate returns
+       'show-step'. -->
+  <div class="form-step" id="stepTravel">
+    <h2>Can you travel to <span id="travelCity">NYC</span> for your consultation?</h2>
+    <p>Our consultations are in-person at our <span id="travelCityFull">Midtown Manhattan</span> office. We don't currently offer virtual visits for GirthFill.</p>
+    <div class="step-label">One more thing</div>
+    <button class="btn-yes" onclick="answerTravel(true)">Yes, I can travel</button>
+    <button class="btn-no" onclick="answerTravel(false)">Not Right Now</button>
   </div>
 
   <!-- ════════════════════════ -->
@@ -516,6 +529,94 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  /* ── Out-of-area travel gate ── */
+
+  // Fire IP geolocation eagerly on page load so the cascade has its IP
+  // signal ready by the time the user finishes typing. Cached as a
+  // promise so multiple awaits are cheap.
+  var __geoPromise = fetch('/api/geo', { credentials: 'omit' })
+    .then(function (r) { return r.ok ? r.json() : { lat: null, lng: null } })
+    .catch(function () { return { lat: null, lng: null } })
+
+  function resolveSource() {
+    var allowed = ['girthfill-landing', 'girthfill-nyc', 'girthfill-sd']
+    var p = new URLSearchParams(window.location.search).get('source')
+    return allowed.indexOf(p) >= 0 ? p : 'girthfill-landing'
+  }
+
+  function applyTravelCopyForAnchor(anchorKey) {
+    var labels = {
+      'nyc': { short: 'NYC', full: 'Midtown Manhattan' },
+      'sd':  { short: 'San Diego', full: 'San Diego' }
+    }
+    var l = labels[anchorKey] || labels.nyc
+    var s = document.getElementById('travelCity')
+    var f = document.getElementById('travelCityFull')
+    if (s) s.textContent = l.short
+    if (f) f.textContent = l.full
+  }
+
+  // Race a promise against a timeout. Used so a slow /api/geo doesn't
+  // block the cascade decision past ~1.5s — we just fall through to the
+  // phone-only result (which on its own returns 'show-step' for any non-
+  // local NPA, the conservative path).
+  function withTimeout(p, ms, fallback) {
+    return new Promise(function (resolve) {
+      var done = false
+      var t = setTimeout(function () { if (!done) { done = true; resolve(fallback) } }, ms)
+      p.then(function (v) { if (!done) { done = true; clearTimeout(t); resolve(v) } },
+             function () { if (!done) { done = true; clearTimeout(t); resolve(fallback) } })
+    })
+  }
+
+  async function evaluateTravelGate(phone) {
+    var G = window.lushfulGeoGate
+    if (!G) return { decision: 'show-step', anchorKey: 'nyc' } // gate script failed to load; conservative
+    var anchorKey = G.anchorFromSource(resolveSource())
+    var geo = await withTimeout(__geoPromise, 1500, { lat: null, lng: null })
+    var ipCoords = (geo && typeof geo.lat === 'number' && typeof geo.lng === 'number')
+      ? [geo.lat, geo.lng]
+      : null
+    return {
+      decision: G.evaluateGate({ phone: phone, ipCoords: ipCoords, anchorKey: anchorKey }),
+      anchorKey: anchorKey
+    }
+  }
+
+  function postTravelStatus(travel_status) {
+    if (!window.__leadId) return
+    fetch('/api/lead-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lead_id: window.__leadId, travel_status: travel_status })
+    }).catch(function () { /* fire-and-forget */ })
+  }
+
+  function postDeclinedTravel() {
+    if (!window.__leadId) return
+    fetch('/api/lead-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: window.__leadId,
+        qualified: false,
+        travel_status: 'declined_travel'
+      })
+    }).catch(function () { /* fire-and-forget */ })
+  }
+
+  async function answerTravel(willing) {
+    var btns = document.querySelectorAll('#stepTravel button')
+    btns.forEach(function (b) { b.disabled = true })
+    if (willing) {
+      postTravelStatus('willing_to_travel')
+      showStep('stepOptions')
+    } else {
+      postDeclinedTravel()
+      showStep('stepNoThanks')
+    }
+  }
+
   function showError(msg) {
     var el = document.getElementById('formError');
     if (el) el.textContent = msg;
@@ -564,7 +665,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       window.__leadId = data.lead_id;
       if (typeof gtag_report_conversion === 'function') gtag_report_conversion();
       if (typeof fbq === 'function') fbq('track', 'CompleteRegistration');
-      showStep('stepOptions');
+      var gate = await evaluateTravelGate(phone)
+      if (gate.decision === 'local') {
+        postTravelStatus('local')
+        showStep('stepOptions')
+      } else {
+        applyTravelCopyForAnchor(gate.anchorKey)
+        showStep('stepTravel')
+      }
     } catch (err) {
       console.error('lead capture failed', err);
       showError('Something went wrong. Please try again.');
