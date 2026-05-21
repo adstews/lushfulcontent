@@ -380,6 +380,7 @@ src="https://www.facebook.com/tr?id=24843507025240186&ev=PageView&noscript=1"
   }
 </style>
 <script src="/js/attribution.js"></script>
+<script src="/js/geo-gate.js"></script>
 </head>
 <body>
 <!-- Google Tag Manager (noscript) -->
@@ -424,6 +425,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <button class="btn-yes" onclick="answerQualification(true)">Yes, I'm Interested</button>
       <button class="btn-no" onclick="answerQualification(false)">Not Right Now</button>
     </div>
+  </div>
+
+  <!-- Conditional Step: qualified leads who appear out-of-area get one
+       confirmation before reaching the booking options. Hidden by default;
+       answerQualification triggers it only when evaluateGate returns
+       'show-step'. -->
+  <div class="form-step" id="stepTravel">
+    <h2>Can you travel to <span id="travelCity">NYC</span> for your consultation?</h2>
+    <p>Our consultations are in-person at our <span id="travelCityFull">Midtown Manhattan</span> office. We don't currently offer virtual visits for GirthFill.</p>
+    <div class="step-label">One more thing</div>
+    <button class="btn-yes" onclick="answerTravel(true)">Yes, I can travel</button>
+    <button class="btn-no" onclick="answerTravel(false)">Not Right Now</button>
   </div>
 
   <!-- STEP 3a: Yes path (book options) -->
@@ -517,6 +530,96 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  /* ── Out-of-area travel gate ── */
+
+  // Fire IP geolocation eagerly on page load so the cascade has its IP
+  // signal ready by the time the user finishes typing. Cached as a
+  // promise so multiple awaits are cheap.
+  var __geoPromise = fetch('/api/geo', { credentials: 'omit' })
+    .then(function (r) { return r.ok ? r.json() : { lat: null, lng: null } })
+    .catch(function () { return { lat: null, lng: null } })
+
+  function resolveSource() {
+    // The Google variant's allowlist differs from the canonical form.
+    var allowed = ['girthfill-landing', 'girthfill-nyc', 'girthfill-sd',
+                   'girthfill-nyc-google', 'girthfill-sd-google']
+    var p = new URLSearchParams(window.location.search).get('source')
+    return allowed.indexOf(p) >= 0 ? p : 'girthfill-landing'
+  }
+
+  function applyTravelCopyForAnchor(anchorKey) {
+    var labels = {
+      'nyc': { short: 'NYC', full: 'Midtown Manhattan' },
+      'sd':  { short: 'San Diego', full: 'San Diego' }
+    }
+    var l = labels[anchorKey] || labels.nyc
+    var s = document.getElementById('travelCity')
+    var f = document.getElementById('travelCityFull')
+    if (s) s.textContent = l.short
+    if (f) f.textContent = l.full
+  }
+
+  function withTimeout(p, ms, fallback) {
+    return new Promise(function (resolve) {
+      var done = false
+      var t = setTimeout(function () { if (!done) { done = true; resolve(fallback) } }, ms)
+      p.then(function (v) { if (!done) { done = true; clearTimeout(t); resolve(v) } },
+             function () { if (!done) { done = true; clearTimeout(t); resolve(fallback) } })
+    })
+  }
+
+  async function evaluateTravelGate(phone) {
+    var G = window.lushfulGeoGate
+    if (!G) return { decision: 'show-step', anchorKey: 'nyc' }
+    // Google-variant sources contain '-google'; strip it for anchor mapping.
+    var src = resolveSource().replace('-google', '')
+    var anchorKey = G.anchorFromSource(src)
+    var geo = await withTimeout(__geoPromise, 1500, { lat: null, lng: null })
+    var ipCoords = (geo && typeof geo.lat === 'number' && typeof geo.lng === 'number')
+      ? [geo.lat, geo.lng]
+      : null
+    return {
+      decision: G.evaluateGate({ phone: phone, ipCoords: ipCoords, anchorKey: anchorKey }),
+      anchorKey: anchorKey
+    }
+  }
+
+  function postTravelStatus(travel_status) {
+    if (!window.__leadId) return
+    fetch('/api/lead-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lead_id: window.__leadId, travel_status: travel_status })
+    }).catch(function () { /* fire-and-forget */ })
+  }
+
+  function postDeclinedTravel() {
+    if (!window.__leadId) return
+    fetch('/api/lead-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: window.__leadId,
+        qualified: false,
+        travel_status: 'declined_travel'
+      })
+    }).catch(function () { /* fire-and-forget */ })
+  }
+
+  async function answerTravel(willing) {
+    var btns = document.querySelectorAll('#stepTravel button')
+    btns.forEach(function (b) { b.disabled = true })
+    if (willing) {
+      postTravelStatus('willing_to_travel')
+      showStep('stepOptions')
+    } else {
+      postDeclinedTravel()
+      // Google variant uses stepSocial as the soft-decline path (vs
+      // stepNoThanks in the canonical form).
+      showStep('stepSocial')
+    }
+  }
+
   function showError(msg) {
     var el = document.getElementById('formError');
     if (el) el.textContent = msg;
@@ -584,7 +687,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if (qualified) {
       if (typeof gtag_report_qualified_lead === 'function') gtag_report_qualified_lead();
       if (typeof fbq === 'function') fbq('track', 'CompleteRegistration');
-      showStep('stepOptions');
+      var phone = document.getElementById('formPhone').value.trim();
+      evaluateTravelGate(phone).then(function (gate) {
+        if (gate.decision === 'local') {
+          postTravelStatus('local');
+          showStep('stepOptions');
+        } else {
+          applyTravelCopyForAnchor(gate.anchorKey);
+          showStep('stepTravel');
+        }
+      });
     } else {
       showStep('stepSocial');
     }
