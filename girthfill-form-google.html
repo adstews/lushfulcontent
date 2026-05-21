@@ -723,6 +723,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       recordCta('book-calendly');
     }
   });
+
+  // QA preview override: ?previewTravelStep=1 forces stepTravel open on load
+  // so the team can view/share the step without spoofing IP + phone. Anchor
+  // copy follows the existing ?source= param (defaults to NYC). Read-only —
+  // it never posts to /api/lead or /api/lead-update.
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    if (!params.get('previewTravelStep')) return;
+    function show() {
+      var src = (params.get('source') || '').toLowerCase();
+      var anchorKey = src.indexOf('sd') >= 0 ? 'sd' : 'nyc';
+      if (typeof applyTravelCopyForAnchor === 'function') applyTravelCopyForAnchor(anchorKey);
+      if (typeof showStep === 'function') showStep('stepTravel');
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', show);
+    } else {
+      show();
+    }
+  })();
 </script>
 
 </body>
