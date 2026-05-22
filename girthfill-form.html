@@ -428,8 +428,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        default; submitContact triggers it only when evaluateGate returns
        'show-step'. -->
   <div class="form-step" id="stepTravel">
-    <h2>Can you travel to Midtown Manhattan for your procedure?</h2>
-    <p>We offer virtual consultations to discuss GirthFill and customize your treatment plan. The procedure and any necessary follow-up visits must take place in person at our office near Bryant Park.</p>
+    <h2>Can you travel to <span id="travelCity">Midtown Manhattan</span> for your procedure?</h2>
+    <p id="travelBody">We offer virtual consultations to discuss GirthFill and customize your treatment plan. The procedure and any necessary follow-up visits must take place in person at our office near Bryant Park.</p>
     <div class="step-label">One more thing</div>
     <button class="btn-no" onclick="answerTravel(false)">Not Right Now</button>
     <button class="btn-yes" onclick="answerTravel(true)">Yes</button>
@@ -543,15 +543,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   function applyTravelCopyForAnchor(anchorKey) {
-    var labels = {
-      'nyc': { short: 'NYC', full: 'Midtown Manhattan' },
-      'sd':  { short: 'San Diego', full: 'San Diego' }
+    var copy = {
+      'nyc': {
+        heading: 'Midtown Manhattan',
+        body: 'We offer virtual consultations to discuss GirthFill and customize your treatment plan. The procedure and any necessary follow-up visits must take place in person at our office near Bryant Park.'
+      },
+      'sd': {
+        heading: 'San Diego',
+        body: 'We offer virtual consultations to discuss GirthFill and customize your treatment plan. The procedure and any necessary follow-up visits must take place in person at our office in Hillcrest.'
+      }
     }
-    var l = labels[anchorKey] || labels.nyc
+    var c = copy[anchorKey] || copy.nyc
     var s = document.getElementById('travelCity')
-    var f = document.getElementById('travelCityFull')
-    if (s) s.textContent = l.short
-    if (f) f.textContent = l.full
+    var b = document.getElementById('travelBody')
+    if (s) s.textContent = c.heading
+    if (b) b.textContent = c.body
   }
 
   // Race a promise against a timeout. Used so a slow /api/geo doesn't

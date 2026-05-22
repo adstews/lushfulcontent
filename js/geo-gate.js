@@ -24,11 +24,15 @@
     },
     sd: {
       coords: [32.7157, -117.1611],
+      extraCoords: [34.0522, -118.2437],
       areaCodes: new Set([
         // SD core
         '619', '858',
         // SD County (north + east), Inland Empire, Orange County
-        '760', '951', '949', '714'
+        '760', '951', '949', '714',
+        // LA metro
+        '213', '310', '323', '424', '562', '626', '657', '661',
+        '747', '818', '909', '949'
       ])
     }
   }
@@ -94,7 +98,10 @@
     if (npa && anchor.areaCodes.has(npa)) return 'local'
 
     var ip = normalizeCoords(opts.ipCoords)
-    if (ip && haversineMiles(ip, anchor.coords) < 100) return 'local'
+    if (ip) {
+      if (haversineMiles(ip, anchor.coords) < 100) return 'local'
+      if (anchor.extraCoords && haversineMiles(ip, anchor.extraCoords) < 100) return 'local'
+    }
 
     return 'show-step'
   }
