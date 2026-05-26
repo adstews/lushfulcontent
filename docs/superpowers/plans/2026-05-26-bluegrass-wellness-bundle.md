@@ -34,7 +34,7 @@ Everything lives in one HTML file: CSS inlined in `<style>`, JS inlined in `<scr
 ## Conventions
 
 - **CSS variables** for the entire palette at `:root` — every color reference uses `var(--name)`.
-- **Section pattern**: every content section wraps in `<section class="section section-NAME">` with a `.wrap` container inside (max-width 1120px, centered).
+- **Section pattern**: content sections that want the default 88px vertical padding use `<section class="section section-NAME">` with a `.wrap` container inside. Sections with their own padding (hero, trust-strip, bundle-reveal, scarcity, final-cta) just use `<section class="section-NAME">` (no `.section` class).
 - **CTA buttons**: always class `btn` (base style is the primary navy button). Subscription CTAs link to `https://www.bluegrassvitamins.com/cart/47823287189745:1?selling_plan=5323489521`. One-time CTAs use `btn btn-secondary` (outlined) and link to `https://www.bluegrassvitamins.com/cart/47823287189745:1`. Urgency CTAs use `btn btn-gold`.
 - **Image placeholders**: `<img src="https://placehold.co/{w}x{h}/{bg-hex}/FFFFFF?text={label}" data-replace="{semantic-key}" alt="...">`. The `data-replace` key is a searchable token Nick uses to find-and-replace once real assets land in Shopify CDN.
 - **Commits**: after each task, commit with a `feat:`, `chore:`, or `style:` prefix and the section/component name.
