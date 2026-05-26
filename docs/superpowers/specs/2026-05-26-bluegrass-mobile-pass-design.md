@@ -59,108 +59,182 @@ CSS-only via:
 
 Other grids stay as they are (promise badges already 2-col compact, bundle summary already 2-col, compare table gets its own treatment per #6).
 
-### 3. IG-story video carousel + custom player modal (SendBlue pattern)
+### 3. IG-story ring overlay on each spray bottle + custom player modal
 
-Replicating the pattern from https://join.sendblue.com/ — verified via DevTools inspection of their live page.
+Adapted from https://join.sendblue.com/ (verified via DevTools inspection). Their pattern uses a row of stories + carousel; ours embeds one ring per spray section and plays each video independently.
 
-**The story row** (placed once on the page, NOT one per spray section):
+**Per-spray story ring** (placed as absolute-positioned overlay on each `.spray-visual`):
 
-A horizontal row of 4 circular "IG-story" thumbnails, each labeled with the spray name. **Placement:** inside the hero section, immediately below the primary CTA (so it's visible without scrolling on mobile). This is the immersive entry point — user can tap any spray to play its story.
+Each of the 4 spray deep-dive sections gets a 72px circular IG-story ring overlaid on the bottle image, bottom-right corner with -8px offsets (so it appears to float outside the frame). Tapping the ring opens the modal with that spray's video. No label — context is clear from the surrounding spray section.
 
 ```html
-<div class="story-row">
-  <div class="story-item" data-video="[placeholder].mp4" data-poster="[bottle-image]">
-    <div class="story-btn">
-      <div class="story-btn-inner" style="background:url(bottle-poster.jpg) center/cover">
-        <svg><!-- play triangle, 16px, white --></svg>
-      </div>
-    </div>
-    <div class="story-label">B-12 Spray</div>
-  </div>
-  <!-- ×4: B-12, Immune, Drift Away, Hair & Nail -->
+<div class="spray-visual">
+  <img src="...spray-bottle-placeholder..." data-replace="spray-b12-bottle" alt="...">
+  <button class="story-btn" data-video="" data-replace="story-video-b12" aria-label="Watch B-12 story video">
+    <span class="story-btn-inner">
+      <svg width="18" height="18" fill="#fff" viewBox="0 0 24 24">
+        <path d="M8 5.14v13.72a1 1 0 001.5.86l11.04-6.86a1 1 0 000-1.72L9.5 4.28a1 1 0 00-1.5.86z"/>
+      </svg>
+    </span>
+  </button>
 </div>
 ```
 
-**Story-button CSS** (the IG-story ring — exact match to SendBlue's):
+(Each spray section's `.story-btn` has its own `data-video=""` placeholder and unique `data-replace` key: `story-video-b12`, `story-video-immune`, `story-video-drift`, `story-video-hairnail`.)
+
+**Story-ring CSS** (the IG conic gradient — exact match to SendBlue's colors):
 ```css
+.spray-visual { position: relative; }
 .story-btn {
+  position: absolute;
+  bottom: -8px; right: -8px;
   width: 72px; height: 72px; border-radius: 50%;
   background: conic-gradient(from 180deg,
     #f58529, #dd2a7b, #8134af, #515bd4,
     #8134af, #dd2a7b, #f58529);
-  padding: 3px;  /* creates the gradient ring */
+  padding: 3px;
   display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: 0;
   transition: transform 0.2s, box-shadow 0.2s;
+  z-index: 2;
 }
+.story-btn:hover { transform: scale(1.08); box-shadow: 0 0 20px rgba(221,42,123,0.4); }
+.story-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
 .story-btn-inner {
-  width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
-  border: 3px solid var(--cream);  /* white gap between ring and image */
-  position: relative;
+  width: 100%; height: 100%; border-radius: 50%;
+  border: 3px solid var(--cream);
+  background: var(--navy);
   display: flex; align-items: center; justify-content: center;
-  background: var(--navy);  /* fallback if poster fails */
+  position: relative; overflow: hidden;
 }
 .story-btn-inner svg {
   filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
-  z-index: 1; position: relative;
-}
-.story-item:hover .story-btn {
-  transform: scale(1.08);
-  box-shadow: 0 0 20px rgba(221,42,123,0.3);
-}
-.story-label {
-  font-size: 11px; color: var(--muted); font-weight: 600;
-  max-width: 72px; text-align: center; line-height: 1.3;
+  z-index: 1;
 }
 ```
 
-**Custom player modal** (one shared element appended at end of `<body>`):
+On mobile (`<880px`), the spray-grid stacks, putting the image full-width above the content. The story button stays at bottom-right of the image (still pops nicely on mobile because it overhangs the image edge).
+
+Optional poster image inside the inner circle (so the ring shows a still preview, like a real IG story): we'll skip for v1 since the bottle placeholder behind the play button is fine, but the design supports it later via `background-image` on `.story-btn-inner`.
+
+**Custom player modal** (one shared element appended at end of `<body>` — simpler than SendBlue's because no carousel):
 
 ```html
 <div class="video-overlay" id="video-overlay">
   <button class="video-overlay-close" id="video-overlay-close" aria-label="Close video">
-    <svg><!-- X icon, 20px --></svg>
+    <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
   </button>
-  <div class="video-overlay-counter" id="video-overlay-counter">1 / 4</div>
-  <div class="video-overlay-nav prev" id="video-nav-prev"></div>  <!-- invisible 40%-width click zone left -->
-  <div class="video-overlay-nav next" id="video-nav-next"></div>  <!-- invisible 40%-width click zone right -->
   <div id="video-player-wrap">
-    <video controls autoplay playsinline style="max-height:55vh"></video>
+    <video id="video-overlay-player" controls autoplay playsinline></video>
   </div>
   <div class="video-overlay-bottom">
-    <a class="video-overlay-cta" id="video-overlay-cta" href="[subscription URL]">Get the Pack — $84.15/mo</a>
+    <a class="video-overlay-cta" href="https://www.bluegrassvitamins.com/cart/47823287189745:1?selling_plan=5323489521">Get the Pack — $84.15/mo</a>
     <div class="video-overlay-proof"><span class="stars">★★★★★</span> 4.9/5 · 50,000+ bottles shipped</div>
   </div>
 </div>
 ```
 
-**Modal CSS** (exact match to SendBlue's structure):
-- `.video-overlay`: `position: fixed; inset: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column; overflow: hidden`
-- `.video-overlay.active`: `display: flex`
-- `.video-overlay video`: `width: 90vw; max-width: 900px; max-height: 55vh; border-radius: 12px`
-- `.video-overlay-close`: 40×40 circle, top-right (20/24), `rgba(255,255,255,0.1)` bg, hover `0.2`
-- `.video-overlay-counter`: top-center, "1 / 4" style, `rgba(255,255,255,0.5)` text
-- `.video-overlay-nav.prev/.next`: invisible click zones (40% width each side) for tap-to-advance
-- `.video-overlay-bottom`: CTA + social proof, sits below video
-- `.video-overlay-cta`: gold pill (`var(--gold)` bg, `var(--ink)` text), CTA-pulse keyframe animation (`@keyframes ctaPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }`, 2s ease infinite)
-- `.video-overlay-proof`: small 12px white-70% text with gold stars
+**Modal CSS** (adapted from SendBlue's):
+```css
+.video-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: none;
+  align-items: center; justify-content: center; flex-direction: column;
+  overflow: hidden;
+}
+.video-overlay.active { display: flex; }
+.video-overlay video {
+  width: 90vw; max-width: 540px;  /* tighter than SendBlue's 900px since our videos are 9:16 portrait */
+  max-height: 70vh;
+  border-radius: 12px;
+  outline: 0;
+  background: #000;
+}
+.video-overlay-close {
+  position: absolute; top: 20px; right: 24px;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.1); border: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  z-index: 10000;
+}
+.video-overlay-close:hover { background: rgba(255,255,255,0.2); }
+.video-overlay-bottom {
+  z-index: 10000;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin-top: 20px;
+  flex-shrink: 0;
+}
+.video-overlay-cta {
+  padding: 14px 36px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 16px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  animation: ctaPulse 2s ease 0.7s infinite;
+  box-shadow: 0 8px 24px rgba(212,168,83,0.4);
+}
+.video-overlay-cta:hover { background: #b88d3b; }
+@keyframes ctaPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.video-overlay-proof {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: rgba(255,255,255,0.7);
+}
+.video-overlay-proof .stars { color: var(--gold); font-size: 13px; letter-spacing: 1px; }
+```
 
-**JS pattern** (in the existing `<script>` block):
-- `window._openCarousel(videoList, startIndex)` — global function that populates `<video>` src, sets counter, shows modal with `.active`, locks body scroll
-- `_advance(delta)` — next/prev navigation
-- Click handlers on `.story-item` collect `data-video` from all siblings, call `_openCarousel`
-- Prev/next click zones, ESC key, close button, and clicks outside the video all close (close button) or advance (nav zones)
-- Body scroll locked via `document.documentElement.style.overflow = 'hidden'` while open
+No counter, no prev/next nav zones — solo videos only.
+
+**JS pattern** (added as a new IIFE in the existing `<script>` block):
+```javascript
+(function () {
+  const overlay = document.getElementById('video-overlay');
+  const player = document.getElementById('video-overlay-player');
+  const closeBtn = document.getElementById('video-overlay-close');
+  if (!overlay || !player) return;
+
+  function open(src) {
+    if (!src) return;  // empty placeholder; do nothing
+    player.src = src;
+    overlay.classList.add('active');
+    document.documentElement.style.overflow = 'hidden';
+    player.play().catch(() => {});  // ignore autoplay-block on some browsers
+  }
+  function close() {
+    overlay.classList.remove('active');
+    player.pause();
+    player.removeAttribute('src');
+    player.load();  // unload buffered video
+    document.documentElement.style.overflow = '';
+  }
+
+  document.querySelectorAll('.story-btn').forEach(btn => {
+    btn.addEventListener('click', () => open(btn.dataset.video));
+  });
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && overlay.classList.contains('active')) close();
+  });
+})();
+```
 
 **Placeholders (for now):**
-- 4 `data-video=""` attributes empty (or placeholder mp4 URL that 404s — video element will show its native error UI). Nick swaps with real URLs later.
-- Poster images use the existing spray-bottle placeholder URLs.
-- README documents the swap workflow with 4 new `data-replace` keys: `story-video-b12`, `story-video-immune`, `story-video-drift`, `story-video-hairnail`.
-
-**Why this placement (in hero, not per-spray):**
-- Mobile: visible above the fold; user sees 4 spray names and a play button before scrolling
-- Carouseling between videos (tap nav zones) lets users watch all 4 stories in sequence — drives deeper engagement
-- Keeps the 4 spray deep-dive sections clean (no badges layered over bottle images)
-- Single shared modal = simpler DOM, smaller payload
+- All 4 `.story-btn` elements ship with `data-video=""` (empty string). The `open()` function no-ops on empty values, so clicking does nothing harmful until real video URLs are filled in.
+- Nick swaps real URLs into the `data-video=""` attributes via the README's `data-replace` workflow (4 new keys: `story-video-b12`, `story-video-immune`, `story-video-drift`, `story-video-hairnail`).
+- README updated to call out: until videos are added, the rings render but don't do anything when tapped. Add this to the "Blockers — MUST fix before any public traffic" section since paid-traffic users will tap and see nothing.
 
 ### 4. Moderate density pass (mobile)
 
