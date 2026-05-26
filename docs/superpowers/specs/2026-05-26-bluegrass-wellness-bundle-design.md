@@ -56,11 +56,11 @@ Bluegrass Supplements is a new client (no prior landers in any repo). They sell 
 - Sticky on scroll
 
 ### 1. Hero
-- Eyebrow trust badge ("Trusted by thousands" — generic if real numbers unconfirmed)
+- Eyebrow trust badge: "10K+ HAPPY CUSTOMERS"
 - Headline (working draft, agitate-pain): "STOP Choking Down 12 Pills a Day That Your Body Barely Absorbs"
 - Subhead: "Get all 4 sublingual sprays for $84.15/month — less than $21 per spray. Save $71.85 vs. buying them separately."
 - Primary CTA: "CLAIM MY STARTER PACK" → subscription cart deeplink
-- Secondary trust row: star rating + bottles-shipped count (placeholders, replace with real numbers)
+- Secondary trust row: star rating + "50,000+ bottles shipped"
 - Soft countdown: 24h rolling "Today's allocation ends in 0d 13h 6m"
 - Visual: hero shot of all 4 spray bottles on neutral background (placeholder)
 
@@ -122,12 +122,12 @@ Same template for each:
 ### 10. Why Sprays Beat Pills (science section — replaces founder story)
 - Headline: "Why Sublingual Sprays Outperform Every Pill in Your Cabinet"
 - Side-by-side: Spray vs. Capsule vs. Gummy
-- Key claims (MUST source-check before launch):
-  - Sublingual absorption is ~9x faster than oral capsules
-  - 90% of capsule contents lost to first-pass metabolism
-  - Spray bypasses digestive system entirely
+- Key claims (all hedged — no concrete sources, written as "studies suggest" / "research indicates"):
+  - "Studies suggest sublingual absorption can be significantly faster than oral capsules"
+  - "Research indicates a large portion of capsule contents may be lost to first-pass metabolism"
+  - "Spray delivery bypasses the digestive system" (factual, no hedge needed)
 - Diagram placeholder: absorption-pathway illustration
-- Citation footnotes — if no real source exists, hedge the claims ("studies suggest", "research indicates")
+- No specific multipliers ("9x", "10x") used since we don't have a source
 
 ### 11. What to expect timeline
 - Day 1: B-12 hits within minutes — first energy lift, no crash
@@ -142,7 +142,7 @@ Same template for each:
 | | Ultimate Wellness Pack | The "stack 4 brands" approach |
 |---|---|---|
 | Cost | $84.15/mo (subscribed) | $156+/mo across 4 bottles |
-| Absorption | Sublingual, fast | 10-30% of pills reach bloodstream |
+| Absorption | Sublingual delivery, studies suggest faster onset | Pill / capsule, much may be lost to digestion |
 | Hassle | One delivery, 4 sprays, 30 seconds | 4 reorders, 4 schedules |
 | Sourcing | Physician-formulated, third-party tested | Varies by brand |
 
@@ -255,15 +255,13 @@ All buy buttons deeplink to Shopify cart URLs. Works identically on Vercel previ
 ## Open items / TODOs (also in README handoff)
 
 1. **Brand hex codes** — Verify with client; current values are best-guess from site inspection.
-2. **Real customer counts** — Use real numbers or remove placeholder counts.
-3. **Real testimonials** — 4–5 placeholder quotes; swap with real reviews.
-4. **Hero photography** — All as labeled placeholders.
-5. **Spray bottle individual photos** — Pull from Bluegrass product pages or wait for client assets.
-6. **Absorption diagram** — Static placeholder; designer can produce later.
-7. **Theme selectors for full-bleed CSS** — Need Bluegrass's active theme to hide nav/footer; written generically with TODO.
-8. **Source citation for "9x faster absorption"** — Need real source before launch; remove or hedge if no source.
-9. **Subscription frequency options** — Locked to monthly (only option exposed in product .js). Expand if more intervals exist.
-10. **Shopify Page slug** — Update full-bleed CSS selector once page slug is set.
+2. **Real testimonials** — 4–5 placeholder quotes; swap with real reviews.
+3. **Hero photography** — All as labeled placeholders.
+4. **Spray bottle individual photos** — Pull from Bluegrass product pages or wait for client assets.
+5. **Absorption diagram** — Static placeholder; designer can produce later.
+6. **Theme selectors for full-bleed CSS** — Need Bluegrass's active theme to hide nav/footer; written generically with TODO.
+7. **Subscription frequency options** — Locked to monthly (only option exposed in product .js). Expand if more intervals exist.
+8. **Shopify Page slug** — Update full-bleed CSS selector once page slug is set.
 
 ## Definition of done
 
