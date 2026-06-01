@@ -87,6 +87,10 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-06-01T00:00:00Z'))
   scheduleMessage.mockResolvedValue({ ok: true })
 })
+// NOTE: resetAllMocks here (not clearAllMocks as in other suites) is deliberate:
+// the "500" test sets close.updateLead.mockRejectedValue, which must be reset —
+// not just call-cleared — so later tests reach the reminder-scheduling path.
+// useRealTimers undoes the fake timers set in beforeEach.
 afterEach(() => { vi.resetAllMocks(); vi.useRealTimers() })
 
 describe('POST /api/calendly-webhook', () => {
