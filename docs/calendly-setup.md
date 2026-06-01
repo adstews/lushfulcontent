@@ -4,6 +4,10 @@ Marks a Close lead "Call Booked" (and logs the Q&A) whenever someone books the
 30-min consult on Calendly — funnel embed, `/consultation-book`, or a bare
 Calendly link in an email. Handler: `api/calendly-webhook.js`.
 
+**Host:** the funnel + API run on the Vercel domain `https://lushfulcontent.vercel.app`.
+(`lushfulaesthetics.com` is the separate WordPress marketing site — do not point
+the webhook there.) The webhook is registered against the Vercel domain.
+
 ## Authentication: shared secret in the callback URL
 
 Calendly does not issue a signing key for this account (the create-subscription
@@ -40,7 +44,7 @@ Personal Access Token (PAT): Calendly → Integrations → API & Webhooks.
      -H "Authorization: Bearer $CALENDLY_PAT" \
      -H "Content-Type: application/json" \
      -d '{
-       "url": "https://lushfulaesthetics.com/api/calendly-webhook?secret=<secret>",
+       "url": "https://lushfulcontent.vercel.app/api/calendly-webhook?secret=<secret>",
        "events": ["invitee.created"],
        "organization": "<organization_uri>",
        "scope": "organization"
@@ -59,8 +63,8 @@ direct-booking lead will fail.
 
 ## Verify
 
-- `GET https://lushfulaesthetics.com/api/calendly-webhook` → **405** (function
-  deployed). A POST without the secret → **401**.
+- `GET https://lushfulcontent.vercel.app/api/calendly-webhook` → **405**
+  (function deployed). A POST without the secret → **401**.
 - Book a test event on the 30-min Calendly. Confirm in Close: the lead is
   **Call Booked** with a "Calendly booking confirmed" note, and the
   `calendly_bookings` table got a row.
