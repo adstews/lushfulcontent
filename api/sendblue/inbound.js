@@ -4,6 +4,7 @@ import { logImessageActivity } from '../../lib/imessage-bridge.js'
 import { pushToAll } from '../../lib/web-push.js'
 import { getSupabase } from '../../lib/supabase.js'
 import { pauseEnrollmentsForLead, unenrollAllForLead, isStopKeyword } from '../../lib/sequences.js'
+import { suppressPhone } from '../../lib/opt-outs.js'
 
 // SendBlue posts incoming messages to this URL. There's no HMAC signature,
 // so we accept a shared secret via either the `X-Webhook-Secret` header or
@@ -109,6 +110,8 @@ export default async function handler(req, res) {
     })
   }
 
+  const stop = isStopKeyword(message)
+
   let lead = null
   try {
     lead = await findLeadByPhone(phone)
@@ -117,12 +120,28 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: `Close lookup failed: ${err.message}` })
   }
 
+  // STOP opts the number out permanently — regardless of whether it maps to a
+  // Close lead. Suppression is phone-keyed; unenroll only when a lead is known.
+  if (stop) {
+    try {
+      await suppressPhone({ phone, leadId: lead?.closeLeadId ?? null, reason: 'stop-keyword' })
+    } catch (err) {
+      console.error('inbound: suppressPhone failed', err)
+    }
+    if (lead) {
+      try { await unenrollAllForLead(lead.closeLeadId, 'stop keyword') } catch (err) {
+        console.error('inbound: unenrollAllForLead failed', err)
+      }
+    }
+  }
+
   if (!lead) {
     return res.status(200).json({
       ok: true,
       matched: false,
       phone,
-      note: 'no Close lead found for this phone — message was received but not logged'
+      suppressed: stop,
+      note: 'no Close lead found for this phone — message received but not logged'
     })
   }
 
@@ -137,19 +156,17 @@ export default async function handler(req, res) {
     sendblueHandle
   })
 
-  // Sequence side effects: STOP keyword hard-unenrolls; any other reply
-  // pauses (or unenrolls — depends on each sequence's on_reply_behavior).
+  // Non-STOP replies pause the lead's active sequences (STOP already unenrolled).
   let sequenceAction = null
   try {
-    if (isStopKeyword(message)) {
-      await unenrollAllForLead(lead.closeLeadId, 'stop keyword')
+    if (stop) {
       sequenceAction = 'unenrolled-all-stop'
     } else {
       const r = await pauseEnrollmentsForLead(lead.closeLeadId, 'inbound reply')
       if (r.affected > 0) sequenceAction = `paused-${r.affected}`
     }
   } catch (err) {
-    console.error('inbound: sequence auto-pause failed', err)
+    console.error('inbound: sequence side-effect failed', err)
   }
 
   let pushResult = { ok: false, sent: 0 }
