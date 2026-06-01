@@ -1,8 +1,16 @@
 # Calendly → Close booking webhook — design
 
 **Date:** 2026-06-01
-**Status:** Approved design (pre-plan)
+**Status:** Implemented.
 **Topic:** Capture Calendly bookings server-side and mark the lead "Call Booked" in Close.
+
+> **Implementation note (2026-06-01):** Calendly did not issue a webhook
+> `signing_key` for this account, so the shipped handler authenticates with a
+> shared secret in the callback URL (`?secret=`, env `CALENDLY_WEBHOOK_SECRET`),
+> mirroring `api/sendblue/close-webhook.js`, instead of the HMAC scheme described
+> below. That also removed the raw-body requirement — the handler uses the parsed
+> `req.body`. Everything else (matching, dedup, Close writes, attribution) is as
+> specified.
 
 ## Context
 

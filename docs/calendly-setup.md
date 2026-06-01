@@ -4,41 +4,52 @@ Marks a Close lead "Call Booked" (and logs the Q&A) whenever someone books the
 30-min consult on Calendly — funnel embed, `/consultation-book`, or a bare
 Calendly link in an email. Handler: `api/calendly-webhook.js`.
 
+## Authentication: shared secret in the callback URL
+
+Calendly does not issue a signing key for this account (the create-subscription
+response returns no `signing_key`) and can't send custom headers. So we
+authenticate with a shared secret carried in the callback URL's query string —
+the same pattern as the Close webhook (`api/sendblue/close-webhook.js`). The
+secret is used both as the URL `?secret=` and the `CALENDLY_WEBHOOK_SECRET` env
+var. Generate a strong one:
+
+```bash
+openssl rand -hex 24
+```
+
 ## One-time registration
 
-Calendly webhook subscriptions are created via API (paid-plan feature) and
-require a Personal Access Token (PAT): Calendly → Integrations → API & Webhooks.
+Calendly webhook subscriptions are created via API (paid plan) and require a
+Personal Access Token (PAT): Calendly → Integrations → API & Webhooks.
 
-1. Get your organization URI:
+1. Set the secret in Vercel (Production) and redeploy so the function knows it:
+   ```
+   CALENDLY_WEBHOOK_SECRET=<secret>
+   ```
 
+2. Get your organization URI:
    ```bash
    curl https://api.calendly.com/users/me \
      -H "Authorization: Bearer $CALENDLY_PAT"
    # → resource.current_organization
    ```
 
-2. Create the subscription (only `invitee.created`):
-
+3. Create the subscription — note the `?secret=` on the callback URL:
    ```bash
    curl -X POST https://api.calendly.com/webhook_subscriptions \
      -H "Authorization: Bearer $CALENDLY_PAT" \
      -H "Content-Type: application/json" \
      -d '{
-       "url": "https://lushfulaesthetics.com/api/calendly-webhook",
+       "url": "https://lushfulaesthetics.com/api/calendly-webhook?secret=<secret>",
        "events": ["invitee.created"],
        "organization": "<organization_uri>",
        "scope": "organization"
      }'
    ```
 
-3. Copy `resource.signing_key` from the response and set it in Vercel
-   (Production + Preview):
-
-   ```
-   CALENDLY_WEBHOOK_SIGNING_KEY=<signing_key>
-   ```
-
-   Redeploy so the function picks it up.
+To rotate the secret: set the new value in Vercel, delete the old subscription
+(`DELETE /webhook_subscriptions/<uuid>`), and create a new one with the new
+`?secret=`.
 
 ## Close prerequisite
 
@@ -48,8 +59,10 @@ direct-booking lead will fail.
 
 ## Verify
 
+- `GET https://lushfulaesthetics.com/api/calendly-webhook` → **405** (function
+  deployed). A POST without the secret → **401**.
 - Book a test event on the 30-min Calendly. Confirm in Close: the lead is
-  **Call Booked** with a "Calendly booking confirmed" note. Check the
+  **Call Booked** with a "Calendly booking confirmed" note, and the
   `calendly_bookings` table got a row.
 - Re-deliver the same event from Calendly's webhook log → handler returns 200
   `skipped: already processed` (no duplicate writes).
@@ -58,14 +71,8 @@ direct-booking lead will fail.
 
 ## Notes
 
-- **Raw-body / signature check (verify on first deploy):** the handler verifies
-  the HMAC over the *raw* request bytes, read before `req.body`. If a genuine
-  Calendly delivery returns **401**, the raw body isn't reaching the function on
-  this runtime — check Calendly's webhook delivery log. The first real (or
-  Calendly-redelivered) event returning **200** confirms it works. Do this
-  before trusting the production subscription.
-- The link needs no params: Calendly's own booking form always collects the
-  name + email, which is what we match on.
-- Replay protection is the `calendly_bookings.invitee_uri` unique key, so the
-  signature check deliberately does not enforce a timestamp window (that would
-  reject Calendly's delayed retries).
+- The link the customer clicks needs no params: Calendly's own booking form
+  always collects the name + email, which is what we match on. The `?secret=` is
+  only on the *webhook callback* URL, never the booking link.
+- Replay protection is the `calendly_bookings.invitee_uri` unique key; a
+  redelivered event is deduped.

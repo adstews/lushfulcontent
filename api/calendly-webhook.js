@@ -1,5 +1,5 @@
 import { getSupabase } from '../lib/supabase.js'
-import { readRawBody, verifySignature, parseInviteeCreated } from '../lib/calendly.js'
+import { parseInviteeCreated, verifySecret } from '../lib/calendly.js'
 import {
   createLead,
   updateLead,
@@ -8,15 +8,10 @@ import {
   findLeadByPhone
 } from '../lib/close.js'
 
-// Calendly signs the raw bytes, and a re-serialized parsed body is not
-// byte-identical — so we read the raw stream (readRawBody) BEFORE anything
-// touches req.body. This repo runs on @vercel/node (not Next.js), whose body
-// parsing is lazy, so reading the stream first yields the exact bytes;
-// readRawBody also honors req.rawBody if the platform exposes it.
-// NOTE: no unit test can prove the bytes survive in the real runtime — verify
-// on a preview deploy with a real signed delivery (see docs/calendly-setup.md)
-// before registering the production subscription. A 401 on a genuine delivery
-// means the raw body isn't reaching us.
+// Calendly doesn't issue a signing key for this account, so we authenticate the
+// webhook with a shared secret carried in the callback URL (?secret=...) — the
+// same pattern as api/sendblue/close-webhook.js. No HMAC means no raw-body
+// requirement: the platform-parsed req.body is fine.
 
 function normalizePhone(phone) {
   if (!phone) return null
@@ -144,19 +139,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'method not allowed' })
   }
 
-  const raw = await readRawBody(req)
-  if (!verifySignature(raw, req.headers['calendly-webhook-signature'], process.env.CALENDLY_WEBHOOK_SIGNING_KEY)) {
-    return res.status(401).json({ error: 'invalid signature' })
+  if (!verifySecret(req, process.env.CALENDLY_WEBHOOK_SECRET)) {
+    return res.status(401).json({ error: 'invalid secret' })
   }
 
-  let body
-  try {
-    body = JSON.parse(raw)
-  } catch {
-    return res.status(400).json({ error: 'invalid json' })
-  }
-
-  if (!body || body.event !== 'invitee.created') {
+  const body = req.body || {}
+  if (body.event !== 'invitee.created') {
     return res.status(200).json({ ok: true, skipped: 'not invitee.created' })
   }
 

@@ -8,19 +8,35 @@ vi.mock('../../lib/close.js', () => ({
   findLeadByEmail: vi.fn(),
   findLeadByPhone: vi.fn()
 }))
-// Keep parseInviteeCreated real; stub the signature + raw-body helpers.
-vi.mock('../../lib/calendly.js', async (importOriginal) => {
-  const actual = await importOriginal()
-  return { ...actual, readRawBody: vi.fn(), verifySignature: vi.fn() }
-})
+// lib/calendly.js (verifySecret + parseInviteeCreated) runs for real.
 
 const { getSupabase } = await import('../../lib/supabase.js')
 const close = await import('../../lib/close.js')
-const calendly = await import('../../lib/calendly.js')
 const handler = (await import('../calendly-webhook.js')).default
 
-function makeReqRes() {
-  const req = { method: 'POST', headers: { 'calendly-webhook-signature': 't=1,v1=sig' } }
+const INVITEE = {
+  event: 'invitee.created',
+  payload: {
+    name: 'Jane Doe',
+    email: 'jane@example.com',
+    text_reminder_number: '+15551234567',
+    timezone: 'America/New_York',
+    uri: 'https://api.calendly.com/scheduled_events/EVT/invitees/INV',
+    event: 'https://api.calendly.com/scheduled_events/EVT',
+    questions_and_answers: [{ question: 'Goal?', answer: 'Bigger' }],
+    tracking: { utm_source: 'email', utm_campaign: 'reactivation' },
+    scheduled_event: { name: '30 Minute Meeting', start_time: '2026-06-03T18:00:00Z' }
+  }
+}
+
+function makeReqRes(over = {}) {
+  const req = {
+    method: 'POST',
+    url: '/api/calendly-webhook?secret=testsecret',
+    headers: {},
+    body: JSON.parse(JSON.stringify(INVITEE)),
+    ...over
+  }
   const res = {
     statusCode: 200,
     _json: null,
@@ -58,52 +74,32 @@ function mockSupabase({ dedup = [], leadsByEmail = [], upsertId = 'sb-new' } = {
   return calls
 }
 
-const INVITEE = {
-  event: 'invitee.created',
-  payload: {
-    name: 'Jane Doe',
-    email: 'jane@example.com',
-    text_reminder_number: '+15551234567',
-    timezone: 'America/New_York',
-    uri: 'https://api.calendly.com/scheduled_events/EVT/invitees/INV',
-    event: 'https://api.calendly.com/scheduled_events/EVT',
-    questions_and_answers: [{ question: 'Goal?', answer: 'Bigger' }],
-    tracking: { utm_source: 'email', utm_campaign: 'reactivation' },
-    scheduled_event: { name: '30 Minute Meeting', start_time: '2026-06-03T18:00:00Z' }
-  }
-}
-
 beforeEach(() => {
-  process.env.CALENDLY_WEBHOOK_SIGNING_KEY = 'whsec_test'
+  process.env.CALENDLY_WEBHOOK_SECRET = 'testsecret'
   process.env.CLOSE_STATUS_CALL_BOOKED = 'stat_call'
   process.env.CLOSE_CF_BOOKED = 'cf_booked'
   process.env.CLOSE_CF_SOURCE = 'cf_source'
   process.env.CLOSE_CF_UTM_SOURCE = 'cf_utm_source'
   process.env.CLOSE_CF_UTM_CAMPAIGN = 'cf_utm_campaign'
-  calendly.verifySignature.mockReturnValue(true)
-  calendly.readRawBody.mockResolvedValue(JSON.stringify(INVITEE))
 })
 afterEach(() => { vi.clearAllMocks() })
 
 describe('POST /api/calendly-webhook', () => {
   it('405 on non-POST', async () => {
-    const { req, res } = makeReqRes()
-    req.method = 'GET'
+    const { req, res } = makeReqRes({ method: 'GET' })
     await handler(req, res)
     expect(res.statusCode).toBe(405)
   })
 
-  it('401 on bad signature', async () => {
-    calendly.verifySignature.mockReturnValue(false)
-    const { req, res } = makeReqRes()
+  it('401 when the secret is missing/wrong', async () => {
+    const { req, res } = makeReqRes({ url: '/api/calendly-webhook' })
     await handler(req, res)
     expect(res.statusCode).toBe(401)
     expect(close.updateLead).not.toHaveBeenCalled()
   })
 
   it('200 skip for non invitee.created', async () => {
-    calendly.readRawBody.mockResolvedValue(JSON.stringify({ event: 'invitee.canceled' }))
-    const { req, res } = makeReqRes()
+    const { req, res } = makeReqRes({ body: { event: 'invitee.canceled' } })
     await handler(req, res)
     expect(res.statusCode).toBe(200)
     expect(res._json.skipped).toBeDefined()
@@ -201,11 +197,7 @@ describe('POST /api/calendly-webhook', () => {
   })
 
   it('200 skip when payload has no email', async () => {
-    calendly.readRawBody.mockResolvedValue(JSON.stringify({
-      event: 'invitee.created',
-      payload: { uri: 'u', email: '' }
-    }))
-    const { req, res } = makeReqRes()
+    const { req, res } = makeReqRes({ body: { event: 'invitee.created', payload: { uri: 'u', email: '' } } })
     await handler(req, res)
     expect(res.statusCode).toBe(200)
     expect(res._json.skipped).toBeDefined()
