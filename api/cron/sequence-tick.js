@@ -91,19 +91,9 @@ async function drainScheduledMessages(now) {
 }
 
 async function fireOne({ enrollment, step, scheduledFor, totalSteps }) {
-  // New-conversation throttle: check before advancing enrollment so a deferred
-  // step isn't consumed. Uses enrollment.phone (the canonical outbound number).
-  if (enrollment.phone && await isNewConversation(enrollment.phone)) {
-    const r = await tryReserveNewConversation(enrollment.phone, NEW_CONVO_CAP)
-    if (!r.ok) return { deferred: true }
-  }
-
-  // Atomically claim this step so concurrent cron runs don't double-fire.
-  const claimed = await tryAdvanceEnrollment(enrollment.id, enrollment.next_step_position)
-  if (!claimed) return { fired: false, skipped: 'lost race' }
-
-  // Render the message template against the lead snapshot. We pull from Close
-  // at fire-time so {{lead.display_name}} reflects current values.
+  // Resolve the lead snapshot first so the throttle can gate on the FULLY
+  // resolved phone (enrollment.phone can be null for manual enrollments or
+  // Close status-trigger events that carry no contact phone).
   let leadSnapshot = {}
   try {
     const lead = await getLead(enrollment.lead_id)
@@ -123,8 +113,21 @@ async function fireOne({ enrollment, step, scheduledFor, totalSteps }) {
     console.error(`sequence-tick: getLead failed for ${enrollment.lead_id}`, err)
   }
 
-  const message = renderTemplate(step.message_template || '', leadSnapshot)
   const phone = enrollment.phone || leadSnapshot.lead?.contact?.phone
+
+  // New-conversation throttle: check before advancing enrollment so a deferred
+  // step isn't consumed. Gates on the fully-resolved phone so a null
+  // enrollment.phone (manual enroll / Close status-trigger) can't bypass the cap.
+  if (phone && await isNewConversation(phone)) {
+    const r = await tryReserveNewConversation(phone, NEW_CONVO_CAP)
+    if (!r.ok) return { deferred: true }
+  }
+
+  // Atomically claim this step so concurrent cron runs don't double-fire.
+  const claimed = await tryAdvanceEnrollment(enrollment.id, enrollment.next_step_position)
+  if (!claimed) return { fired: false, skipped: 'lost race' }
+
+  const message = renderTemplate(step.message_template || '', leadSnapshot)
   if (!phone) {
     await recordSend({
       enrollmentId: enrollment.id, stepId: step.id, scheduledFor,

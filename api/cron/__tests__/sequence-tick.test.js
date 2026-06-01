@@ -215,6 +215,7 @@ describe('GET /api/cron/sequence-tick', () => {
     const { req, res } = makeReqRes()
     await handler(req, res)
     expect(sendImessage).not.toHaveBeenCalled()
+    expect(tryAdvanceEnrollment).not.toHaveBeenCalled()
     expect(res._json.deferred).toBeGreaterThanOrEqual(1)
   })
 })
