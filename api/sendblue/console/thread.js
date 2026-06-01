@@ -1,6 +1,7 @@
 import { requireAuth } from '../../../lib/auth.js'
 import { getLead } from '../../../lib/close.js'
 import { getSupabase } from '../../../lib/supabase.js'
+import { isSuppressed } from '../../../lib/opt-outs.js'
 
 // Returns a single lead's iMessage thread from the Supabase mirror table.
 // Joins reactions onto messages by SendBlue message_handle. Also returns
@@ -88,11 +89,19 @@ export default async function handler(req, res) {
     if (phoneObj?.phone) replyPhone = phoneObj.phone
   }
 
+  let optedOut = false
+  try {
+    optedOut = await isSuppressed({ phone: replyPhone, leadId })
+  } catch (err) {
+    console.error('console/thread opt-out check failed', err)
+  }
+
   return res.status(200).json({
     leadId,
     leadName: lead?.display_name || null,
     statusLabel: lead?.status_label || null,
     replyPhone,
+    optedOut,
     messages
   })
 }

@@ -258,6 +258,10 @@
   }
   .seq-step .step-head .grow { flex: 1; color: var(--muted); font-size: 12px; }
 
+  /* Opt-out banner replaces composer when the lead has texted STOP */
+  .opted-out-banner { padding: 12px; text-align: center; color: var(--danger);
+    border-top: 1px solid var(--line); background: var(--panel); font-size: 13px; }
+
   /* Thread enrollment banner */
   .thread-banner {
     padding: 10px 14px;
@@ -1041,44 +1045,46 @@ function viewThreadDetail() {
         ? h('div', { class: 'placeholder' }, 'No messages yet on this lead.')
         : t.messages.map(renderMessageBubble)
     ),
-    h('form', { class: 'composer', onsubmit: onSend },
-      h('input', {
-        type: 'file',
-        accept: 'image/*,video/mp4,video/quicktime',
-        style: 'display:none',
-        ref: (el) => { fileInputEl = el },
-        onchange: (e) => {
-          const f = e.target.files?.[0]
-          if (f) attachFile(f)
-          e.target.value = ''
-        }
-      }),
-      h('div', { class: 'composer-inner' },
-        attached
-          ? h('div', { class: 'attach-preview' },
-              attached.kind === 'video'
-                ? h('video', { src: attached.previewUrl, muted: true })
-                : h('img', { src: attached.previewUrl, alt: 'attachment' }),
-              h('div', { class: 'filename' }, attached.filename),
-              h('button', { class: 'remove', type: 'button', onclick: clearAttachment }, '✕')
-            )
-          : null,
-        composerEl = h('textarea', {
-          placeholder: t.replyPhone ? `Reply to ${t.replyPhone}…` : 'No phone on file',
-          rows: 1,
-          disabled: !t.replyPhone || state.sending,
-          onkeydown: (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(e) } }
-        })
-      ),
-      h('button', {
-        type: 'button',
-        class: 'attach-btn',
-        title: 'Attach photo or video',
-        disabled: !t.replyPhone || state.sending,
-        onclick: () => document.querySelector('.composer input[type=file]')?.click()
-      }, '📎'),
-      h('button', { type: 'submit', disabled: !t.replyPhone || state.sending }, state.sending ? '…' : 'Send')
-    ),
+    t.optedOut
+      ? h('div', { class: 'opted-out-banner' }, '⛔ Opted out (STOP) — messaging disabled')
+      : h('form', { class: 'composer', onsubmit: onSend },
+          h('input', {
+            type: 'file',
+            accept: 'image/*,video/mp4,video/quicktime',
+            style: 'display:none',
+            ref: (el) => { fileInputEl = el },
+            onchange: (e) => {
+              const f = e.target.files?.[0]
+              if (f) attachFile(f)
+              e.target.value = ''
+            }
+          }),
+          h('div', { class: 'composer-inner' },
+            attached
+              ? h('div', { class: 'attach-preview' },
+                  attached.kind === 'video'
+                    ? h('video', { src: attached.previewUrl, muted: true })
+                    : h('img', { src: attached.previewUrl, alt: 'attachment' }),
+                  h('div', { class: 'filename' }, attached.filename),
+                  h('button', { class: 'remove', type: 'button', onclick: clearAttachment }, '✕')
+                )
+              : null,
+            composerEl = h('textarea', {
+              placeholder: t.replyPhone ? `Reply to ${t.replyPhone}…` : 'No phone on file',
+              rows: 1,
+              disabled: !t.replyPhone || state.sending,
+              onkeydown: (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(e) } }
+            })
+          ),
+          h('button', {
+            type: 'button',
+            class: 'attach-btn',
+            title: 'Attach photo or video',
+            disabled: !t.replyPhone || state.sending,
+            onclick: () => document.querySelector('.composer input[type=file]')?.click()
+          }, '📎'),
+          h('button', { type: 'submit', disabled: !t.replyPhone || state.sending }, state.sending ? '…' : 'Send')
+        ),
     viewReactPicker()
   )
 }
