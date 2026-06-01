@@ -1,8 +1,11 @@
 import { sendImessage } from '../../lib/imessage-bridge.js'
 import { getLead } from '../../lib/close.js'
 import {
-  findDueSends, tryAdvanceEnrollment, recordSend, markCompleted, renderTemplate
+  findDueSends, tryAdvanceEnrollment, recordSend, markCompleted, renderTemplate, unenrollAllForLead
 } from '../../lib/sequences.js'
+import {
+  findDueScheduledMessages, claimScheduledMessage, markScheduledSent, markScheduledFailed
+} from '../../lib/scheduled-messages.js'
 
 // Vercel Cron hits this every 5 minutes. Vercel Cron requests carry an
 // Authorization header matching the project's CRON_SECRET env var; on Vercel
@@ -21,16 +24,14 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'unauthorized cron call' })
   }
 
-  let due
+  const now = new Date()
+
+  let due = []
   try {
-    due = await findDueSends({ now: new Date(), limit: 50 })
+    due = await findDueSends({ now, limit: 50 })
   } catch (err) {
     console.error('sequence-tick: findDueSends failed', err)
     return res.status(500).json({ error: String(err?.message || err) })
-  }
-
-  if (due.length === 0) {
-    return res.status(200).json({ ok: true, fired: 0, message: 'nothing due' })
   }
 
   const results = await Promise.allSettled(due.map(item => fireOne(item)))
@@ -38,13 +39,38 @@ export default async function handler(req, res) {
   const failed = results.filter(r => r.status === 'fulfilled' && r.value.error).length
   const completed = results.filter(r => r.status === 'fulfilled' && r.value.completed).length
 
-  return res.status(200).json({
-    ok: true,
-    due: due.length,
-    fired,
-    failed,
-    completed
-  })
+  const reminders = await drainScheduledMessages(now)
+
+  return res.status(200).json({ ok: true, due: due.length, fired, failed, completed, reminders })
+}
+
+async function drainScheduledMessages(now) {
+  let dueMsgs = []
+  try {
+    dueMsgs = await findDueScheduledMessages({ now, limit: 50 })
+  } catch (err) {
+    console.error('sequence-tick: findDueScheduledMessages failed', err)
+    return { due: 0, sent: 0, failed: 0, error: String(err?.message || err) }
+  }
+  let sent = 0, failed = 0
+  for (const m of dueMsgs) {
+    const claimed = await claimScheduledMessage(m.id)
+    if (!claimed) continue
+    try {
+      const r = await sendImessage({
+        phone: m.phone,
+        message: m.message || '',
+        mediaUrl: m.media_url || undefined,
+        leadId: m.close_lead_id || undefined
+      })
+      await markScheduledSent(m.id, { handle: r?.send?.message_handle })
+      sent++
+    } catch (err) {
+      await markScheduledFailed(m.id, String(err?.message || err))
+      failed++
+    }
+  }
+  return { due: dueMsgs.length, sent, failed }
 }
 
 async function fireOne({ enrollment, step, scheduledFor, totalSteps }) {
@@ -98,6 +124,9 @@ async function fireOne({ enrollment, step, scheduledFor, totalSteps }) {
       enrollmentId: enrollment.id, stepId: step.id, scheduledFor,
       error: String(err?.message || err)
     })
+    if (String(err?.message || err).includes('opted out')) {
+      try { await unenrollAllForLead(enrollment.lead_id, 'opted-out') } catch (e) { console.error('fireOne unenroll failed', e) }
+    }
     return { error: String(err?.message || err) }
   }
 

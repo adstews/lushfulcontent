@@ -5,7 +5,14 @@ vi.mock('../../../lib/sequences.js', () => ({
   tryAdvanceEnrollment: vi.fn(),
   recordSend: vi.fn(),
   markCompleted: vi.fn(),
-  renderTemplate: (s) => s ?? ''
+  renderTemplate: (s) => s ?? '',
+  unenrollAllForLead: vi.fn()
+}))
+vi.mock('../../../lib/scheduled-messages.js', () => ({
+  findDueScheduledMessages: vi.fn(),
+  claimScheduledMessage: vi.fn(),
+  markScheduledSent: vi.fn(),
+  markScheduledFailed: vi.fn()
 }))
 vi.mock('../../../lib/imessage-bridge.js', () => ({
   sendImessage: vi.fn()
@@ -17,6 +24,8 @@ vi.mock('../../../lib/close.js', () => ({
 const { findDueSends, tryAdvanceEnrollment, recordSend, markCompleted } = await import('../../../lib/sequences.js')
 const { sendImessage } = await import('../../../lib/imessage-bridge.js')
 const { getLead } = await import('../../../lib/close.js')
+const { findDueScheduledMessages, claimScheduledMessage, markScheduledSent, markScheduledFailed } =
+  await import('../../../lib/scheduled-messages.js')
 const handler = (await import('../sequence-tick.js')).default
 
 function makeReqRes({ auth = 'cron-secret', headers = {} } = {}) {
@@ -40,6 +49,7 @@ beforeEach(() => {
     id: 'L1', display_name: 'Test',
     contacts: [{ phones: [{ phone: '+15550100123' }] }]
   })
+  findDueScheduledMessages.mockResolvedValue([])
 })
 
 afterEach(() => { vi.clearAllMocks() })
@@ -145,5 +155,45 @@ describe('GET /api/cron/sequence-tick', () => {
     expect(recordSend).toHaveBeenCalledWith(expect.objectContaining({
       error: expect.stringContaining('SendBlue down')
     }))
+  })
+
+  it('drains a due scheduled message via sendImessage', async () => {
+    findDueSends.mockResolvedValue([])
+    findDueScheduledMessages.mockResolvedValue([
+      { id: 'm1', phone: '+15550100123', message: 'reminder', media_url: null, close_lead_id: 'lead_1' }
+    ])
+    claimScheduledMessage.mockResolvedValue(true)
+    sendImessage.mockResolvedValue({ send: { message_handle: 'h1' }, log: { ok: true } })
+
+    const { req, res } = makeReqRes()
+    await handler(req, res)
+    expect(sendImessage).toHaveBeenCalledWith(expect.objectContaining({
+      phone: '+15550100123', message: 'reminder', leadId: 'lead_1'
+    }))
+    expect(markScheduledSent).toHaveBeenCalledWith('m1', expect.objectContaining({ handle: 'h1' }))
+    expect(res._json.reminders).toMatchObject({ sent: 1 })
+  })
+
+  it('marks a scheduled message failed when the recipient is opted out', async () => {
+    findDueSends.mockResolvedValue([])
+    findDueScheduledMessages.mockResolvedValue([
+      { id: 'm2', phone: '+15550100124', message: 'reminder', media_url: null, close_lead_id: 'lead_2' }
+    ])
+    claimScheduledMessage.mockResolvedValue(true)
+    sendImessage.mockRejectedValue(new Error('recipient opted out (STOP)'))
+
+    const { req, res } = makeReqRes()
+    await handler(req, res)
+    expect(markScheduledFailed).toHaveBeenCalledWith('m2', expect.stringContaining('opted out'))
+    expect(res._json.reminders).toMatchObject({ failed: 1 })
+  })
+
+  it('skips a scheduled message it cannot claim (race)', async () => {
+    findDueSends.mockResolvedValue([])
+    findDueScheduledMessages.mockResolvedValue([{ id: 'm3', phone: '+1', message: 'x', media_url: null, close_lead_id: null }])
+    claimScheduledMessage.mockResolvedValue(false)
+    const { req, res } = makeReqRes()
+    await handler(req, res)
+    expect(sendImessage).not.toHaveBeenCalled()
   })
 })
