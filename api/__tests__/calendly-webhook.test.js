@@ -81,6 +81,7 @@ beforeEach(() => {
   process.env.CLOSE_CF_SOURCE = 'cf_source'
   process.env.CLOSE_CF_UTM_SOURCE = 'cf_utm_source'
   process.env.CLOSE_CF_UTM_CAMPAIGN = 'cf_utm_campaign'
+  process.env.CLOSE_CF_CALL_TIME = 'cf_calltime'
 })
 afterEach(() => { vi.clearAllMocks() })
 
@@ -126,7 +127,7 @@ describe('POST /api/calendly-webhook', () => {
     expect(close.updateLead).toHaveBeenCalledWith({
       leadId: 'lead_1',
       statusId: 'stat_call',
-      customFields: { cf_booked: 'Call' }
+      customFields: { cf_booked: 'Call', cf_calltime: '2026-06-03T18:00:00Z' }
     })
     expect(close.createNote).toHaveBeenCalledWith(expect.objectContaining({ leadId: 'lead_1' }))
     expect(calls.inserts.calendly_bookings[0]).toMatchObject({
@@ -173,7 +174,8 @@ describe('POST /api/calendly-webhook', () => {
         cf_source: 'calendly-direct',
         cf_booked: 'Call',
         cf_utm_source: 'email',
-        cf_utm_campaign: 'reactivation'
+        cf_utm_campaign: 'reactivation',
+        cf_calltime: '2026-06-03T18:00:00Z'
       })
     }))
     expect(close.createNote).toHaveBeenCalledWith(expect.objectContaining({ leadId: 'lead_new' }))

@@ -61,6 +61,9 @@ async function createDirectLead(sb, parsed) {
   for (const [envName, val] of utmFields) {
     if (val && process.env[envName]) customFields[process.env[envName]] = val
   }
+  if (process.env.CLOSE_CF_CALL_TIME && parsed.startTime) {
+    customFields[process.env.CLOSE_CF_CALL_TIME] = parsed.startTime
+  }
 
   const { closeLeadId } = await createLead({
     name: parsed.name,
@@ -173,10 +176,14 @@ export default async function handler(req, res) {
     const resolved = await resolveLead(sb, parsed)
 
     if (!resolved.created) {
+      const matchedFields = { [process.env.CLOSE_CF_BOOKED]: 'Call' }
+      if (process.env.CLOSE_CF_CALL_TIME && parsed.startTime) {
+        matchedFields[process.env.CLOSE_CF_CALL_TIME] = parsed.startTime
+      }
       await updateLead({
         leadId: resolved.closeLeadId,
         statusId: process.env.CLOSE_STATUS_CALL_BOOKED,
-        customFields: { [process.env.CLOSE_CF_BOOKED]: 'Call' }
+        customFields: matchedFields
       })
     }
 
