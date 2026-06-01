@@ -58,6 +58,12 @@ direct-booking lead will fail.
 
 ## Notes
 
+- **Raw-body / signature check (verify on first deploy):** the handler verifies
+  the HMAC over the *raw* request bytes, read before `req.body`. If a genuine
+  Calendly delivery returns **401**, the raw body isn't reaching the function on
+  this runtime — check Calendly's webhook delivery log. The first real (or
+  Calendly-redelivered) event returning **200** confirms it works. Do this
+  before trusting the production subscription.
 - The link needs no params: Calendly's own booking form always collects the
   name + email, which is what we match on.
 - Replay protection is the `calendly_bookings.invitee_uri` unique key, so the

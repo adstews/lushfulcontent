@@ -8,9 +8,15 @@ import {
   findLeadByPhone
 } from '../lib/close.js'
 
-// Calendly signs the raw bytes; the parsed body is not byte-identical, so we
-// disable Vercel's body parser and read the stream ourselves.
-export const config = { api: { bodyParser: false } }
+// Calendly signs the raw bytes, and a re-serialized parsed body is not
+// byte-identical — so we read the raw stream (readRawBody) BEFORE anything
+// touches req.body. This repo runs on @vercel/node (not Next.js), whose body
+// parsing is lazy, so reading the stream first yields the exact bytes;
+// readRawBody also honors req.rawBody if the platform exposes it.
+// NOTE: no unit test can prove the bytes survive in the real runtime — verify
+// on a preview deploy with a real signed delivery (see docs/calendly-setup.md)
+// before registering the production subscription. A 401 on a genuine delivery
+// means the raw body isn't reaching us.
 
 function normalizePhone(phone) {
   if (!phone) return null
@@ -98,13 +104,17 @@ async function createDirectLead(sb, parsed) {
 }
 
 async function resolveLead(sb, parsed) {
-  // 1. Supabase leads by email (we own the close_lead_id mapping).
-  const { data: rows } = await sb
+  // 1. Supabase leads by email (we own the close_lead_id mapping). Exact match
+  // on the lowercased email — avoids SQL LIKE wildcard semantics from
+  // attacker-supplied addresses (e.g. `a_b@x.com`). Mixed-case stored rows fall
+  // through to the case-insensitive Close search below.
+  const { data: rows, error: rowsErr } = await sb
     .from('leads')
     .select('id, close_lead_id')
-    .ilike('email', parsed.email)
+    .eq('email', parsed.email)
     .not('close_lead_id', 'is', null)
     .limit(1)
+  if (rowsErr) throw new Error(`leads email lookup failed: ${rowsErr.message}`)
   const sbLead = rows && rows[0]
   if (sbLead && sbLead.close_lead_id) {
     return { closeLeadId: sbLead.close_lead_id, leadRowId: sbLead.id, matchedBy: 'email', created: false }
@@ -157,19 +167,20 @@ export default async function handler(req, res) {
 
   const sb = getSupabase()
 
-  // Idempotency: Calendly retries failed deliveries; skip ones we've handled.
-  const { data: dup } = await sb
-    .from('calendly_bookings')
-    .select('id')
-    .eq('invitee_uri', parsed.inviteeUri)
-    .limit(1)
-  if (dup && dup.length > 0) {
-    return res.status(200).json({ ok: true, skipped: 'already processed' })
-  }
-
   try {
     const missing = ['CLOSE_STATUS_CALL_BOOKED', 'CLOSE_CF_BOOKED'].filter(v => !process.env[v])
     if (missing.length > 0) throw new Error(`Close env vars missing: ${missing.join(', ')}`)
+
+    // Idempotency: Calendly retries failed deliveries; skip ones we've handled.
+    const { data: dup, error: dupErr } = await sb
+      .from('calendly_bookings')
+      .select('id')
+      .eq('invitee_uri', parsed.inviteeUri)
+      .limit(1)
+    if (dupErr) throw new Error(`calendly_bookings lookup failed: ${dupErr.message}`)
+    if (dup && dup.length > 0) {
+      return res.status(200).json({ ok: true, skipped: 'already processed' })
+    }
 
     const resolved = await resolveLead(sb, parsed)
 
