@@ -6,6 +6,9 @@ import {
 import {
   findDueScheduledMessages, claimScheduledMessage, markScheduledSent, markScheduledFailed
 } from '../../lib/scheduled-messages.js'
+import { isNewConversation, tryReserveNewConversation } from '../../lib/new-convo-throttle.js'
+
+const NEW_CONVO_CAP = parseInt(process.env.IMESSAGE_NEW_CONVO_DAILY_CAP || '14', 10)
 
 // Vercel Cron hits this every 5 minutes. Vercel Cron requests carry an
 // Authorization header matching the project's CRON_SECRET env var; on Vercel
@@ -38,10 +41,11 @@ export default async function handler(req, res) {
   const fired = results.filter(r => r.status === 'fulfilled' && r.value.fired).length
   const failed = results.filter(r => r.status === 'fulfilled' && r.value.error).length
   const completed = results.filter(r => r.status === 'fulfilled' && r.value.completed).length
+  const deferred = results.filter(r => r.status === 'fulfilled' && r.value.deferred).length
 
   const reminders = await drainScheduledMessages(now)
 
-  return res.status(200).json({ ok: true, due: due.length, fired, failed, completed, reminders })
+  return res.status(200).json({ ok: true, due: due.length, fired, failed, completed, deferred, reminders })
 }
 
 async function drainScheduledMessages(now) {
@@ -52,8 +56,14 @@ async function drainScheduledMessages(now) {
     console.error('sequence-tick: findDueScheduledMessages failed', err)
     return { due: 0, sent: 0, failed: 0, error: String(err?.message || err) }
   }
-  let sent = 0, failed = 0
+  let sent = 0, failed = 0, deferred = 0
   for (const m of dueMsgs) {
+    // New-conversation throttle: check before claiming so a deferred reminder stays pending.
+    if (m.phone && await isNewConversation(m.phone)) {
+      const r = await tryReserveNewConversation(m.phone, NEW_CONVO_CAP)
+      if (!r.ok) { deferred++; continue }
+    }
+
     let claimed
     try {
       claimed = await claimScheduledMessage(m.id)
@@ -77,10 +87,17 @@ async function drainScheduledMessages(now) {
       failed++
     }
   }
-  return { due: dueMsgs.length, sent, failed }
+  return { due: dueMsgs.length, sent, failed, deferred }
 }
 
 async function fireOne({ enrollment, step, scheduledFor, totalSteps }) {
+  // New-conversation throttle: check before advancing enrollment so a deferred
+  // step isn't consumed. Uses enrollment.phone (the canonical outbound number).
+  if (enrollment.phone && await isNewConversation(enrollment.phone)) {
+    const r = await tryReserveNewConversation(enrollment.phone, NEW_CONVO_CAP)
+    if (!r.ok) return { deferred: true }
+  }
+
   // Atomically claim this step so concurrent cron runs don't double-fire.
   const claimed = await tryAdvanceEnrollment(enrollment.id, enrollment.next_step_position)
   if (!claimed) return { fired: false, skipped: 'lost race' }

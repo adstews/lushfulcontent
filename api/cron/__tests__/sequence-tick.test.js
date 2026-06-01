@@ -20,12 +20,14 @@ vi.mock('../../../lib/imessage-bridge.js', () => ({
 vi.mock('../../../lib/close.js', () => ({
   getLead: vi.fn()
 }))
+vi.mock('../../../lib/new-convo-throttle.js', () => ({ isNewConversation: vi.fn(), tryReserveNewConversation: vi.fn() }))
 
 const { findDueSends, tryAdvanceEnrollment, recordSend, markCompleted } = await import('../../../lib/sequences.js')
 const { sendImessage } = await import('../../../lib/imessage-bridge.js')
 const { getLead } = await import('../../../lib/close.js')
 const { findDueScheduledMessages, claimScheduledMessage, markScheduledSent, markScheduledFailed } =
   await import('../../../lib/scheduled-messages.js')
+const { isNewConversation, tryReserveNewConversation } = await import('../../../lib/new-convo-throttle.js')
 const handler = (await import('../sequence-tick.js')).default
 
 function makeReqRes({ auth = 'cron-secret', headers = {} } = {}) {
@@ -50,6 +52,9 @@ beforeEach(() => {
     contacts: [{ phones: [{ phone: '+15550100123' }] }]
   })
   findDueScheduledMessages.mockResolvedValue([])
+  // Default: already-contacted → no throttle gate (existing tests stay green)
+  isNewConversation.mockResolvedValue(false)
+  tryReserveNewConversation.mockResolvedValue({ ok: true, isNew: false })
 })
 
 afterEach(() => { vi.clearAllMocks() })
@@ -195,5 +200,21 @@ describe('GET /api/cron/sequence-tick', () => {
     const { req, res } = makeReqRes()
     await handler(req, res)
     expect(sendImessage).not.toHaveBeenCalled()
+  })
+
+  it('defers a drip step to a NEW contact when the daily cap is exhausted', async () => {
+    findDueSends.mockResolvedValue([{
+      enrollment: { id: 'e1', sequence_id: 's1', lead_id: 'L1', next_step_position: 0, phone: '+15550100199' },
+      step: { id: 'st1', message_template: 'hi' },
+      scheduledFor: new Date(),
+      totalSteps: 2
+    }])
+    tryAdvanceEnrollment.mockResolvedValue(true)
+    isNewConversation.mockResolvedValue(true)
+    tryReserveNewConversation.mockResolvedValue({ ok: false, reason: 'daily-cap' })
+    const { req, res } = makeReqRes()
+    await handler(req, res)
+    expect(sendImessage).not.toHaveBeenCalled()
+    expect(res._json.deferred).toBeGreaterThanOrEqual(1)
   })
 })
