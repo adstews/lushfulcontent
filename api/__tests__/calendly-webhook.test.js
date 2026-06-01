@@ -8,10 +8,12 @@ vi.mock('../../lib/close.js', () => ({
   findLeadByEmail: vi.fn(),
   findLeadByPhone: vi.fn()
 }))
+vi.mock('../../lib/scheduled-messages.js', () => ({ scheduleMessage: vi.fn() }))
 // lib/calendly.js (verifySecret + parseInviteeCreated) runs for real.
 
 const { getSupabase } = await import('../../lib/supabase.js')
 const close = await import('../../lib/close.js')
+const { scheduleMessage } = await import('../../lib/scheduled-messages.js')
 const handler = (await import('../calendly-webhook.js')).default
 
 const INVITEE = {
@@ -81,8 +83,11 @@ beforeEach(() => {
   process.env.CLOSE_CF_SOURCE = 'cf_source'
   process.env.CLOSE_CF_UTM_SOURCE = 'cf_utm_source'
   process.env.CLOSE_CF_UTM_CAMPAIGN = 'cf_utm_campaign'
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-06-01T00:00:00Z'))
+  scheduleMessage.mockResolvedValue({ ok: true })
 })
-afterEach(() => { vi.clearAllMocks() })
+afterEach(() => { vi.resetAllMocks(); vi.useRealTimers() })
 
 describe('POST /api/calendly-webhook', () => {
   it('405 on non-POST', async () => {
@@ -212,5 +217,36 @@ describe('POST /api/calendly-webhook', () => {
     expect(res.statusCode).toBe(500)
     expect(calls.inserts.lead_sync_errors[0]).toMatchObject({ service: 'calendly' })
     expect(calls.inserts.calendly_bookings).toBeUndefined()
+  })
+
+  it('schedules a 30-min iMessage reminder before the appointment', async () => {
+    mockSupabase({ leadsByEmail: [{ id: 'sb1', close_lead_id: 'lead_1' }] })
+    const { req, res } = makeReqRes()
+    await handler(req, res)
+    expect(scheduleMessage).toHaveBeenCalledWith(expect.objectContaining({
+      phone: '+15551234567',
+      closeLeadId: 'lead_1',
+      sendAt: new Date('2026-06-03T17:30:00Z'),
+      dedupKey: INVITEE.payload.uri,
+      source: 'calendly-reminder'
+    }))
+  })
+
+  it('does not schedule a reminder when the appointment is <=30 min out', async () => {
+    vi.setSystemTime(new Date('2026-06-03T17:45:00Z'))
+    mockSupabase({ leadsByEmail: [{ id: 'sb1', close_lead_id: 'lead_1' }] })
+    const { req, res } = makeReqRes()
+    await handler(req, res)
+    expect(scheduleMessage).not.toHaveBeenCalled()
+  })
+
+  it('does not schedule a reminder when no phone is present', async () => {
+    mockSupabase({ leadsByEmail: [{ id: 'sb1', close_lead_id: 'lead_1' }] })
+    const noPhone = JSON.parse(JSON.stringify(INVITEE))
+    delete noPhone.payload.text_reminder_number
+    noPhone.payload.questions_and_answers = []
+    const { req, res } = makeReqRes({ body: noPhone })
+    await handler(req, res)
+    expect(scheduleMessage).not.toHaveBeenCalled()
   })
 })
