@@ -44,10 +44,15 @@ export default async function handler(req, res) {
 
   if (!lead) return res.status(200).json({ ok: true, matched: false, phone, suppressed: stop })
 
-  const logResult = await logImessageActivity({
-    leadId: lead.closeLeadId, leadName: lead.displayName, contactId: lead.contactId,
-    direction: 'inbound', message: message || '', phone, mediaUrl, sendblueHandle: handle
-  })
+  let logResult
+  try {
+    logResult = await logImessageActivity({
+      leadId: lead.closeLeadId, leadName: lead.displayName, contactId: lead.contactId,
+      direction: 'inbound', message: message || '', phone, mediaUrl, sendblueHandle: handle
+    })
+  } catch (err) {
+    logResult = { ok: false, error: String(err?.message || err) }
+  }
 
   let sequenceAction = null
   try {
@@ -59,5 +64,5 @@ export default async function handler(req, res) {
   try { pushed = (await pushToAll({ title: lead.displayName || phone, body: message || (mediaUrl ? '📎 Attachment' : ''), tag: `lead:${lead.closeLeadId}`, data: { leadId: lead.closeLeadId, phone, url: '/imessage' } })).sent || 0 }
   catch (err) { console.error('imessage/inbound push failed', err) }
 
-  return res.status(200).json({ ok: true, matched: true, phone, leadId: lead.closeLeadId, logged: logResult.ok, pushed, sequenceAction })
+  return res.status(200).json({ ok: true, matched: true, phone, leadId: lead.closeLeadId, logged: logResult.ok, logError: logResult.ok ? null : logResult.error, pushed, sequenceAction })
 }
