@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../../../lib/sequences.js', () => ({
   findSequencesForStatusTrigger: vi.fn(),
-  enrollLead: vi.fn()
+  enrollLead: vi.fn(),
+  unenrollAllForLead: vi.fn()
 }))
 
-const { findSequencesForStatusTrigger, enrollLead } = await import('../../../lib/sequences.js')
+const { findSequencesForStatusTrigger, enrollLead, unenrollAllForLead } = await import('../../../lib/sequences.js')
 const handler = (await import('../close-webhook.js')).default
 
 function makeReqRes(body, { method = 'POST', headers = {}, url = '/api/sendblue/close-webhook' } = {}) {
@@ -22,6 +23,8 @@ function makeReqRes(body, { method = 'POST', headers = {}, url = '/api/sendblue/
 
 beforeEach(() => {
   delete process.env.CLOSE_WEBHOOK_SECRET
+  process.env.CLOSE_STATUS_CALL_BOOKED = 'stat_call'
+  process.env.CLOSE_STATUS_APPT_BOOKED = 'stat_appt'
 })
 
 afterEach(() => { vi.clearAllMocks() })
@@ -112,5 +115,36 @@ describe('POST /api/sendblue/close-webhook', () => {
     await handler(req, res)
     expect(res.statusCode).toBe(200)
     expect(res._json.matched).toBe(0)
+  })
+
+  it('unenrolls and does not enroll when the new status is a booked status', async () => {
+    unenrollAllForLead.mockResolvedValue({ affected: 1 })
+    const { req, res } = makeReqRes({
+      event: {
+        object_type: 'lead', action: 'updated',
+        data: { id: 'lead_b', status_id: 'stat_call' },
+        previous_data: { status_id: 'stat_potential' }
+      }
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(unenrollAllForLead).toHaveBeenCalledWith('lead_b', 'booked')
+    expect(res._json.unenrolled).toBe(true)
+    expect(findSequencesForStatusTrigger).not.toHaveBeenCalled()
+  })
+
+  it('still enrolls on a non-booked status transition', async () => {
+    findSequencesForStatusTrigger.mockResolvedValue([{ id: 'seq1', name: 'Drip' }])
+    enrollLead.mockResolvedValue({ id: 'enr1' })
+    const { req, res } = makeReqRes({
+      event: {
+        object_type: 'lead', action: 'updated',
+        data: { id: 'lead_c', status_id: 'stat_qualified', contacts: [{ id: 'c1', phones: [{ phone: '+15550100123' }] }] },
+        previous_data: { status_id: 'stat_potential' }
+      }
+    })
+    await handler(req, res)
+    expect(unenrollAllForLead).not.toHaveBeenCalled()
+    expect(enrollLead).toHaveBeenCalled()
   })
 })

@@ -1,4 +1,4 @@
-import { findSequencesForStatusTrigger, enrollLead } from '../../lib/sequences.js'
+import { findSequencesForStatusTrigger, enrollLead, unenrollAllForLead } from '../../lib/sequences.js'
 
 // Close webhook receiver for lead.updated events. We detect status transitions
 // (data.status_id != previous_data.status_id) and auto-enroll the lead into
@@ -49,6 +49,23 @@ export default async function handler(req, res) {
   // only treat as a transition if the status actually changed.
   if (action === 'updated' && newStatusId === oldStatusId) {
     return res.status(200).json({ ok: true, skipped: 'no status change' })
+  }
+
+  // Booking → unenroll. Every booking path (Calendly webhook, client ping,
+  // manual Close change, Close workflow) ends in a status flip to a booked
+  // status, which lands here. Unenroll takes precedence over enroll.
+  const stopStatusIds = [
+    process.env.CLOSE_STATUS_CALL_BOOKED,
+    process.env.CLOSE_STATUS_APPT_BOOKED
+  ].filter(Boolean)
+  if (stopStatusIds.includes(newStatusId)) {
+    try {
+      await unenrollAllForLead(leadId, 'booked')
+    } catch (err) {
+      console.error('close-webhook: unenrollAllForLead failed', err)
+      return res.status(500).json({ error: String(err?.message || err) })
+    }
+    return res.status(200).json({ ok: true, leadId, statusId: newStatusId, unenrolled: true })
   }
 
   let sequences
