@@ -54,12 +54,19 @@ async function drainScheduledMessages(now) {
   }
   let sent = 0, failed = 0
   for (const m of dueMsgs) {
-    const claimed = await claimScheduledMessage(m.id)
+    let claimed
+    try {
+      claimed = await claimScheduledMessage(m.id)
+    } catch (err) {
+      // Transient claim failure: leave the row pending for the next tick.
+      console.error('sequence-tick: claim failed for scheduled message', m.id, err)
+      continue
+    }
     if (!claimed) continue
     try {
       const r = await sendImessage({
         phone: m.phone,
-        message: m.message || '',
+        message: m.message || undefined,
         mediaUrl: m.media_url || undefined,
         leadId: m.close_lead_id || undefined
       })
