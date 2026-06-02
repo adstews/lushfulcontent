@@ -6,9 +6,11 @@ vi.mock('../../../../lib/close.js', () => ({
 vi.mock('../../../../lib/supabase.js', () => ({
   getSupabase: vi.fn()
 }))
+vi.mock('../../../../lib/opt-outs.js', () => ({ isSuppressed: vi.fn() }))
 
 const { getLead } = await import('../../../../lib/close.js')
 const { getSupabase } = await import('../../../../lib/supabase.js')
+const { isSuppressed } = await import('../../../../lib/opt-outs.js')
 const { makeSessionCookie } = await import('../../../../lib/auth.js')
 const handler = (await import('../thread.js')).default
 
@@ -57,6 +59,7 @@ function mockTables({ messages = [], reactions = [], messagesError = null, react
 
 beforeEach(() => {
   process.env.REPLY_CONSOLE_SESSION_SECRET = 'this-is-a-long-enough-secret-yes'
+  isSuppressed.mockResolvedValue(false)
 })
 
 afterEach(() => { vi.clearAllMocks() })
@@ -144,5 +147,25 @@ describe('GET /api/sendblue/console/thread', () => {
     const res = makeRes()
     await handler(authedReq({ leadId: 'lead_1' }), res)
     expect(res.statusCode).toBe(502)
+  })
+
+  it('returns optedOut:true when the reply phone is suppressed', async () => {
+    isSuppressed.mockResolvedValue(true)
+    mockTables({
+      messages: [
+        { id: 'm1', close_activity_id: 'a1', direction: 'outbound', message: 'hi', phone: '+15551111111', media_url: null, sendblue_handle: 'sb_a', created_at: '2026-05-10T10:00:00Z' }
+      ],
+      reactions: []
+    })
+    getLead.mockResolvedValue({
+      id: 'lead_1',
+      display_name: 'Jane Doe',
+      status_label: 'Qualified',
+      contacts: [{ id: 'cont_1', phones: [{ phone: '+15552222222' }] }]
+    })
+    const res = makeRes()
+    await handler(authedReq({ leadId: 'lead_1' }), res)
+    expect(res.statusCode).toBe(200)
+    expect(res._json.optedOut).toBe(true)
   })
 })

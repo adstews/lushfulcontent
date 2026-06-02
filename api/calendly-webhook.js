@@ -7,6 +7,7 @@ import {
   findLeadByEmail,
   findLeadByPhone
 } from '../lib/close.js'
+import { scheduleMessage } from '../lib/scheduled-messages.js'
 
 // Calendly doesn't issue a signing key for this account, so we authenticate the
 // webhook with a shared secret carried in the callback URL (?secret=...) — the
@@ -198,6 +199,27 @@ export default async function handler(req, res) {
       matched_by: resolved.matchedBy,
       raw: body
     })
+
+    // Best-effort: schedule a one-off iMessage reminder 30 min before the
+    // appointment. Skipped when no phone, or the appt is <=30 min out. Never
+    // fails the booking response. (The 1-hr email reminder is a separate cron.)
+    try {
+      if (parsed.phone && parsed.startTime) {
+        const sendAt = new Date(new Date(parsed.startTime).getTime() - 30 * 60 * 1000)
+        if (sendAt.getTime() > Date.now()) {
+          await scheduleMessage({
+            phone: parsed.phone,
+            closeLeadId: resolved.closeLeadId,
+            message: "Hey there! It's Lushful Aesthetics — this is just a reminder that your Girthfill consultation call is in 30 minutes. Need to reschedule or cancel? Check your email for the link.",
+            sendAt,
+            dedupKey: parsed.inviteeUri,
+            source: 'calendly-reminder'
+          })
+        }
+      }
+    } catch (err) {
+      console.error('calendly-webhook: reminder scheduling failed', err)
+    }
 
     return res.status(200).json({ ok: true, matchedBy: resolved.matchedBy, closeLeadId: resolved.closeLeadId })
   } catch (err) {

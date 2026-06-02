@@ -12,11 +12,18 @@ vi.mock('../../../lib/web-push.js', () => ({
 vi.mock('../../../lib/supabase.js', () => ({
   getSupabase: vi.fn()
 }))
+vi.mock('../../../lib/opt-outs.js', () => ({ suppressPhone: vi.fn() }))
+vi.mock('../../../lib/sequences.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, unenrollAllForLead: vi.fn(), pauseEnrollmentsForLead: vi.fn() }
+})
 
 const { findLeadByPhone } = await import('../../../lib/close.js')
 const { logImessageActivity } = await import('../../../lib/imessage-bridge.js')
 const { pushToAll } = await import('../../../lib/web-push.js')
 const { getSupabase } = await import('../../../lib/supabase.js')
+const { suppressPhone } = await import('../../../lib/opt-outs.js')
+const { unenrollAllForLead, pauseEnrollmentsForLead } = await import('../../../lib/sequences.js')
 const handler = (await import('../inbound.js')).default
 
 function makeReqRes(body, { method = 'POST', headers = {}, url = '/api/sendblue/inbound' } = {}) {
@@ -36,6 +43,7 @@ beforeEach(() => {
   // Default supabase mock — reaction events insert; tests that care override.
   const insert = vi.fn().mockResolvedValue({ error: null })
   getSupabase.mockReturnValue({ from: () => ({ insert }) })
+  pauseEnrollmentsForLead.mockResolvedValue({ affected: 0 })
 })
 
 afterEach(() => {
@@ -222,5 +230,41 @@ describe('POST /api/sendblue/inbound', () => {
     expect(res.statusCode).toBe(200)
     expect(res._json.logged).toBe(false)
     expect(res._json.logError).toMatch(/CLOSE_CUSTOM_ACTIVITY_IMESSAGE/)
+  })
+
+  it('STOP with no matched lead still suppresses the number', async () => {
+    findLeadByPhone.mockResolvedValue(null)
+    const { req, res } = makeReqRes({ from_number: '+15550100123', content: 'STOP' })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res._json.matched).toBe(false)
+    expect(suppressPhone).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: '+15550100123', leadId: null })
+    )
+    expect(unenrollAllForLead).not.toHaveBeenCalled()
+  })
+
+  it('STOP with a matched lead suppresses + unenrolls + still logs', async () => {
+    findLeadByPhone.mockResolvedValue({ closeLeadId: 'lead_s', contactId: null, displayName: 'S' })
+    logImessageActivity.mockResolvedValue({ ok: true })
+    const { req, res } = makeReqRes({ from_number: '+15550100123', content: 'stop' })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(suppressPhone).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: '+15550100123', leadId: 'lead_s' })
+    )
+    expect(unenrollAllForLead).toHaveBeenCalledWith('lead_s', expect.any(String))
+    expect(logImessageActivity).toHaveBeenCalled()
+    expect(pauseEnrollmentsForLead).not.toHaveBeenCalled()
+  })
+
+  it('non-STOP reply pauses, does not suppress', async () => {
+    findLeadByPhone.mockResolvedValue({ closeLeadId: 'lead_p', contactId: null, displayName: 'P' })
+    logImessageActivity.mockResolvedValue({ ok: true })
+    pauseEnrollmentsForLead.mockResolvedValue({ affected: 1 })
+    const { req, res } = makeReqRes({ from_number: '+15550100123', content: 'sounds good' })
+    await handler(req, res)
+    expect(suppressPhone).not.toHaveBeenCalled()
+    expect(pauseEnrollmentsForLead).toHaveBeenCalledWith('lead_p', expect.any(String))
   })
 })
