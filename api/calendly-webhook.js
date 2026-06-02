@@ -62,6 +62,9 @@ async function createDirectLead(sb, parsed) {
   for (const [envName, val] of utmFields) {
     if (val && process.env[envName]) customFields[process.env[envName]] = val
   }
+  if (process.env.CLOSE_CF_CALL_TIME && parsed.startTime) {
+    customFields[process.env.CLOSE_CF_CALL_TIME] = parsed.startTime
+  }
 
   const { closeLeadId } = await createLead({
     name: parsed.name,
@@ -174,10 +177,14 @@ export default async function handler(req, res) {
     const resolved = await resolveLead(sb, parsed)
 
     if (!resolved.created) {
+      const matchedFields = { [process.env.CLOSE_CF_BOOKED]: 'Call' }
+      if (process.env.CLOSE_CF_CALL_TIME && parsed.startTime) {
+        matchedFields[process.env.CLOSE_CF_CALL_TIME] = parsed.startTime
+      }
       await updateLead({
         leadId: resolved.closeLeadId,
         statusId: process.env.CLOSE_STATUS_CALL_BOOKED,
-        customFields: { [process.env.CLOSE_CF_BOOKED]: 'Call' }
+        customFields: matchedFields
       })
     }
 
@@ -200,16 +207,10 @@ export default async function handler(req, res) {
       if (parsed.phone && parsed.startTime) {
         const sendAt = new Date(new Date(parsed.startTime).getTime() - 30 * 60 * 1000)
         if (sendAt.getTime() > Date.now()) {
-          let when = parsed.startTime
-          try {
-            when = new Date(parsed.startTime).toLocaleString('en-US', {
-              timeZone: parsed.timezone || 'UTC', dateStyle: 'medium', timeStyle: 'short'
-            })
-          } catch { /* keep ISO */ }
           await scheduleMessage({
             phone: parsed.phone,
             closeLeadId: resolved.closeLeadId,
-            message: `Hi ${parsed.name || 'there'} — reminder: your Lushful Aesthetics consult is at ${when}. Reply here if you need anything.`,
+            message: "Hey there! It's Lushful Aesthetics — this is just a reminder that your Girthfill consultation call is in 30 minutes. Need to reschedule or cancel? Check your email for the link.",
             sendAt,
             dedupKey: parsed.inviteeUri,
             source: 'calendly-reminder'
