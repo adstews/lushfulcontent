@@ -200,16 +200,10 @@ export default async function handler(req, res) {
       if (parsed.phone && parsed.startTime) {
         const sendAt = new Date(new Date(parsed.startTime).getTime() - 30 * 60 * 1000)
         if (sendAt.getTime() > Date.now()) {
-          let when = parsed.startTime
-          try {
-            when = new Date(parsed.startTime).toLocaleString('en-US', {
-              timeZone: parsed.timezone || 'UTC', dateStyle: 'medium', timeStyle: 'short'
-            })
-          } catch { /* keep ISO */ }
           await scheduleMessage({
             phone: parsed.phone,
             closeLeadId: resolved.closeLeadId,
-            message: `Hi ${parsed.name || 'there'} — reminder: your Lushful Aesthetics consult is at ${when}. Reply here if you need anything.`,
+            message: "Hey there! It's Lushful Aesthetics — this is just a reminder that your Girthfill consultation call is in 30 minutes. Need to reschedule or cancel? Check your email for the link.",
             sendAt,
             dedupKey: parsed.inviteeUri,
             source: 'calendly-reminder'
