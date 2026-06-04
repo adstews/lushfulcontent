@@ -72,6 +72,7 @@ export default async function handler(req, res) {
   if (fetchErr || !lead) {
     return res.status(404).json({ error: 'lead not found' })
   }
+  const isHoletox = (lead.source || '').startsWith('holetox')
 
   // 1. Update Supabase
   const updates = { updated_at: new Date().toISOString() }
@@ -110,7 +111,8 @@ export default async function handler(req, res) {
 
   if (body.qualified !== undefined) {
     tasks.push(taggedTask('mailchimp', async () => {
-      const tag = body.qualified ? 'girthfill-qualified' : 'girthfill-not-qualified'
+      const prefix = isHoletox ? 'holetox' : 'girthfill'
+      const tag = body.qualified ? `${prefix}-qualified` : `${prefix}-not-qualified`
       await addTags({ email: lead.email, tags: [tag] })
       return { service: 'mailchimp' }
     }))
@@ -122,7 +124,12 @@ export default async function handler(req, res) {
     tasks.push(taggedTask('close', async () => {
       const requiredCloseEnvVars = []
       if (body.qualified !== undefined) {
-        requiredCloseEnvVars.push('CLOSE_STATUS_QUALIFIED', 'CLOSE_STATUS_BAD_FIT', 'CLOSE_CF_QUALIFIED')
+        requiredCloseEnvVars.push('CLOSE_CF_QUALIFIED')
+        if (isHoletox) {
+          if (body.qualified === false) requiredCloseEnvVars.push('CLOSE_STATUS_HOLETOX_BAD_FIT')
+        } else {
+          requiredCloseEnvVars.push('CLOSE_STATUS_QUALIFIED', 'CLOSE_STATUS_BAD_FIT')
+        }
       }
       if (body.cta_clicked !== undefined) {
         requiredCloseEnvVars.push('CLOSE_CF_CTA_CLICKED')
@@ -149,9 +156,13 @@ export default async function handler(req, res) {
       let statusId
       if (body.qualified !== undefined) {
         customFields[process.env.CLOSE_CF_QUALIFIED] = body.qualified ? 'Yes' : 'No'
-        statusId = body.qualified
-          ? process.env.CLOSE_STATUS_QUALIFIED
-          : process.env.CLOSE_STATUS_BAD_FIT
+        if (isHoletox) {
+          if (body.qualified === false) statusId = process.env.CLOSE_STATUS_HOLETOX_BAD_FIT
+        } else {
+          statusId = body.qualified
+            ? process.env.CLOSE_STATUS_QUALIFIED
+            : process.env.CLOSE_STATUS_BAD_FIT
+        }
       }
       if (body.cta_clicked !== undefined) {
         customFields[process.env.CLOSE_CF_CTA_CLICKED] = CTA_LABELS[body.cta_clicked]

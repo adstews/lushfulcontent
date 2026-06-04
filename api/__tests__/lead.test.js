@@ -55,6 +55,7 @@ beforeEach(() => {
   process.env.CLOSE_CF_GCLID = 'cf_gc'
   process.env.CLOSE_CF_REFERRER = 'cf_ref'
   process.env.CLOSE_CF_LANDING_PAGE = 'cf_lp'
+  process.env.CLOSE_STATUS_HOLETOX_NEW = 'stat_holetox_new'
 })
 
 afterEach(() => {
@@ -318,5 +319,39 @@ describe('POST /api/lead', () => {
       email: 'john@example.com',
       tags: ['girthfill-sd-google', 'SQ Lander']
     })
+  })
+
+  it('routes holetox-nyc to the Holetox - New status and adds the Holetox tag', async () => {
+    mockSupabase({ upsertResult: { data: { id: 'lead-holetox' }, error: null } })
+    upsertSubscriber.mockResolvedValue({ subscriberHash: 'h' })
+    addTags.mockResolvedValue()
+    createLead.mockResolvedValue({ closeLeadId: 'close_holetox' })
+
+    const { req, res } = makeReqRes({
+      name: 'Sam', email: 'sam@example.com', phone: '555-0400', source: 'holetox-nyc'
+    })
+    await handler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    expect(addTags).toHaveBeenCalledWith({
+      email: 'sam@example.com',
+      tags: ['holetox-nyc', 'SQ Lander', 'Holetox']
+    })
+    expect(createLead).toHaveBeenCalledWith(expect.objectContaining({ statusId: 'stat_holetox_new' }))
+  })
+
+  it('accepts source = holetox-sd and routes to Holetox - New', async () => {
+    mockSupabase({ upsertResult: { data: { id: 'lead-holetox-sd' }, error: null } })
+    upsertSubscriber.mockResolvedValue({ subscriberHash: 'h' })
+    addTags.mockResolvedValue()
+    createLead.mockResolvedValue({ closeLeadId: 'close_holetox_sd' })
+
+    const { req, res } = makeReqRes({
+      name: 'Lee', email: 'lee@example.com', phone: '555-0500', source: 'holetox-sd'
+    })
+    await handler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    expect(createLead).toHaveBeenCalledWith(expect.objectContaining({ statusId: 'stat_holetox_new' }))
   })
 })

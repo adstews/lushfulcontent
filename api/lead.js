@@ -13,7 +13,9 @@ const BodySchema = z.object({
     'girthfill-nyc',
     'girthfill-sd',
     'girthfill-nyc-google',
-    'girthfill-sd-google'
+    'girthfill-sd-google',
+    'holetox-nyc',
+    'holetox-sd'
   ]),
   utm_source: z.string().optional().nullable(),
   utm_medium: z.string().optional().nullable(),
@@ -41,6 +43,7 @@ export default async function handler(req, res) {
     })
   }
   const body = parsed.data
+  const isHoletox = body.source.startsWith('holetox')
   const sb = getSupabase()
 
   // 1. Supabase upsert (fatal if it fails)
@@ -80,6 +83,7 @@ export default async function handler(req, res) {
   // Use the source value directly as the Mailchimp tag so each landing
   // page (girthfill-nyc, girthfill-sd, etc.) gets its own segmentable tag.
   const mailchimpTags = [body.source, 'SQ Lander']
+  if (isHoletox) mailchimpTags.push('Holetox')
   if (body.qualified === true) mailchimpTags.push('girthfill-qualified')
   if (body.qualified === false) mailchimpTags.push('girthfill-not-qualified')
 
@@ -118,9 +122,9 @@ export default async function handler(req, res) {
   if (body.source !== 'girthfill-carousel') {
     tasks.push(taggedTask('close', async () => {
       // Pick the right Close status based on qualified at create time.
-      let statusVar = 'CLOSE_STATUS_NEW'
-      if (body.qualified === true) statusVar = 'CLOSE_STATUS_QUALIFIED'
-      if (body.qualified === false) statusVar = 'CLOSE_STATUS_BAD_FIT'
+      let statusVar = isHoletox ? 'CLOSE_STATUS_HOLETOX_NEW' : 'CLOSE_STATUS_NEW'
+      if (!isHoletox && body.qualified === true) statusVar = 'CLOSE_STATUS_QUALIFIED'
+      if (!isHoletox && body.qualified === false) statusVar = 'CLOSE_STATUS_BAD_FIT'
 
       const requiredCloseEnvVars = [
         statusVar,

@@ -308,4 +308,24 @@ describe('POST /api/lead-update', () => {
       })
     }))
   })
+
+  it('holetox lead + qualified=false routes to Holetox - Bad Fit + holetox-not-qualified tag', async () => {
+    process.env.CLOSE_STATUS_HOLETOX_BAD_FIT = 'stat_holetox_bf'
+    process.env.CLOSE_CF_TRAVEL_STATUS = 'cf_ts'
+    mockSupabase({
+      leadRow: { id: 'lead-h', email: 'h@x.com', source: 'holetox-nyc', close_lead_id: 'close_h' }
+    })
+    updateLead.mockResolvedValue({})
+    addTags.mockResolvedValue({})
+    const { req, res } = makeReqRes({
+      lead_id: 'lead-h', qualified: false, travel_status: 'declined_travel'
+    })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(addTags).toHaveBeenCalledWith({ email: 'h@x.com', tags: ['holetox-not-qualified'] })
+    expect(updateLead).toHaveBeenCalledWith(expect.objectContaining({
+      statusId: 'stat_holetox_bf',
+      customFields: expect.objectContaining({ cf_q: 'No', cf_ts: 'Declined Travel' })
+    }))
+  })
 })
