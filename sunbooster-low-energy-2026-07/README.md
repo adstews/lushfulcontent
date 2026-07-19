@@ -14,7 +14,7 @@ Tuesday client call). Client-note thesis: *"test search terms / keywords around 
 | Bidding | Maximize Clicks (`target_spend`), **no CPC ceiling** (per Nick) |
 | Networks | Google Search only — partners OFF, display OFF |
 | Geo | United States (`2840`), **PRESENCE / PRESENCE** |
-| Final URL | **`https://us.sunbooster.health/amazon`** — the PDP-style lander, not direct-to-Amazon (see below) |
+| Final URL | Amazon listing `dp/B0GTQ5563H` with the Amazon Attribution tag (`maas_adg_E0EA…`) — **byte-identical to the live NIR Device campaign's ads** |
 | Tracking | AdKit auto UTM suffix (`utm_source=google&utm_medium=cpc&…`) |
 
 ## Structure
@@ -32,23 +32,20 @@ Tuesday client call). Client-note thesis: *"test search terms / keywords around 
 - Extensions at campaign scope: 6 callouts + 1 structured snippet (Types). All claims reused from
   already-approved ads in the account (free delivery / 30-day returns / patented / $249).
 
-## Landing-page decision (changed during build)
+## Landing-page decision — direct to Amazon (Nick, Jul 19)
 
-Ads were first published straight to the Amazon listing (matching the existing NIR Device campaign),
-then **switched to `us.sunbooster.health/amazon`** before any spend. Why:
+Ads go **straight to the Amazon listing**, on the same maas-tagged URL the live NIR Device campaign
+uses. Verified by read-back: all five ads across both campaigns now share the identical string.
 
-- The direct-to-Amazon flow **was not converting** — `/amazon` + `/cart` were built on Jul 19
-  precisely to test against it. A brand-new traffic test should feed the funnel being tested.
-- The lander carries **GTM-PLJ4L8QK + gtag AW-11502363411** and fires `add_to_cart` (and Meta
-  `AddToCart`) on its Begin Checkout CTA. So this campaign generates a **real in-platform Google
-  conversion signal** — the existing primary "Add to cart" action (`7679846627`) should record it —
-  instead of a permanent zero.
-- Verified live before launch: `HTTP 200`, tags present, `add_to_cart` wired.
+Rationale: one consistent Amazon Attribution destination across the account, and a destination already
+proven through policy review. Mid-build the URLs were briefly pointed at `us.sunbooster.health/amazon`
+(the tagged PDP lander) — **no spend occurred at that URL**; reverted on instruction before traffic.
 
-**Tradeoff, stated plainly:** the click no longer carries the account's Amazon Attribution `maas` tag,
-so Amazon-side attribution for this campaign is lost. To get both, mint a per-campaign Attribution tag
-in Amazon Ads console and append it to the lander's outbound *Buy on Amazon* link. Worth doing before
-the test scales.
+**Consequence to carry into reporting:** Google's conversion column will read **0** for this campaign.
+Every conversion action in the account is legacy EU (sunled.health, EUR) web tagging, and the purchase
+now happens entirely on Amazon. Judge this test on **clicks / CTR / CPC in Google + Amazon Attribution
+on the Amazon side**. If a Google-side signal is ever wanted, the `/amazon` lander is the lever — it
+fires `add_to_cart` against `AW-11502363411`.
 
 ## Policy events during build
 
@@ -70,13 +67,11 @@ the test scales.
 
 ## What stays manual / known limitations
 
-- **Google conversions now measurable, but only to the add-to-cart step.** The lander's `add_to_cart`
-  fires against `AW-11502363411`, so the primary "Add to cart" action should populate. The actual
-  purchase still happens on Amazon and is **not** attributable in Google. Read the funnel as:
-  Google clicks → lander add-to-cart (Google) → Amazon purchase (Amazon-side only).
-- **Confirm the add-to-cart conversion actually records** once clicks arrive — the account's
-  conversion actions are legacy EU (sunled.health, EUR) and may be scoped in a way that drops US
-  events. If nothing lands within the first ~20 clicks, that's the first thing to debug.
+- **Conversions will read 0 in Google** — see the landing-page section. Report on clicks/CTR/CPC plus
+  Amazon Attribution. Optional upgrade: mint a **per-campaign** Amazon Attribution tag in the Amazon
+  Ads console and swap it in, so this test gets its own Amazon-side line rather than sharing the NIR
+  Device campaign's tag (today both campaigns report through the same `maas_adg_E0EA…` tag, so
+  Amazon-side numbers are not separable by campaign).
 - Campaign-level conversion goals & any policy exemption appeals: UI only.
 - Account has junk PRIMARY conversion actions (e.g. a sunled.health page-view). Doesn't affect Max
   Clicks, but worth demoting before any Smart Bidding move.

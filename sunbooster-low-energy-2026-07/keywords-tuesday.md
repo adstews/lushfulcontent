@@ -5,9 +5,8 @@ low energy (related to lack of sunlight)."
 
 **What's live (since Sat Jul 19):** new Google Search campaign
 `SunBooster | Search | NB | Low Energy | US | 2026-07` — ~$100/day (€87), Maximize Clicks with no CPC
-cap, US only, all ads landing on **us.sunbooster.health/amazon** (the new PDP-style lander, which then
-hands off to the Amazon listing with the SUNBOOST50 coupon). Volumes below are Google Keyword Planner,
-US, monthly.
+cap, US only, all ads going **straight to the Amazon listing** on the same Attribution-tagged link our
+existing campaign uses. Volumes below are Google Keyword Planner, US, monthly.
 
 ## Ad group 1 — Tired / Low Energy (the symptom)
 
@@ -100,15 +99,14 @@ angle ports as the *solution* vocabulary:
 
 ## How we'll judge it
 
-Ads land on the new **/amazon lander**, which is tagged — so unlike the old direct-to-Amazon setup,
-we get a real signal inside Google:
+Ads go straight to the Amazon listing, so **Google's conversion column will show 0 — that's expected,
+not a problem.** The purchase happens on Amazon, where Google can't see it. The scoreboard:
 
-1. **Google:** clicks, CPC, CTR by ad group — which of the three angles (symptom / cause / solution)
-   people actually click.
-2. **Lander:** add-to-cart rate — does "always tired" traffic engage with the product story, or just
-   bounce? This is the question the test really answers.
-3. **Amazon:** purchases, Amazon-side only. Note the tradeoff — routing through the lander means this
-   campaign's clicks don't carry the Amazon Attribution tag, so we read Amazon at the account level.
-   Fixable with a per-campaign Attribution tag on the lander's outbound button if we want both.
+1. **Google — which angle earns the click.** Clicks, CTR and CPC by ad group tell us whether people
+   respond to the symptom ("always tired"), the cause ("lack of sunlight"), or the solution
+   ("sun lamp") framing. That's the real question this test answers.
+2. **Amazon Attribution — clicks → detail-page views → purchases.** One caveat: this campaign shares
+   the same Attribution tag as our existing campaign, so Amazon-side numbers aren't separable by
+   campaign yet. Worth minting a dedicated tag if we scale this.
 
 First real read after ~5–7 days of spend.
