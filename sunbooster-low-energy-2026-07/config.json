@@ -14,8 +14,9 @@
     "displayNetwork": false,
     "geo": {"include": "United States", "targetType": "PRESENCE"}
   },
-  "finalUrl": "https://www.amazon.com/SunBooster-SLS2020-Near-Infrared-Therapy-Technology/dp/B0GTQ5563H?maas=maas_adg_E0EAA9032FF02C3844AAF2B28644385E_afap_abs&ref_=aa_maas&tag=maas",
-  "finalUrl_note": "Same Amazon Attribution URL as the live NB NIR Device campaign - keeps all account traffic measurable in Amazon Attribution. For per-campaign attribution, generate a new maas tag in Amazon Ads console and swap.",
+  "finalUrl": "https://us.sunbooster.health/amazon",
+  "finalUrl_note": "Points at the /amazon PDP-style lander (NOT direct to Amazon). Two reasons: (1) the direct-to-Amazon flow was not converting, and /amazon exists specifically as that test; (2) the lander carries GTM-PLJ4L8QK + gtag AW-11502363411 and fires add_to_cart on the Begin Checkout CTA, so this campaign produces a real in-platform Google conversion signal instead of a permanent zero. Lander then hands off to amazon.com/dp/B0GTQ5563H with coupon SUNBOOST50 ($249 -> $199).",
+  "finalUrl_tradeoff": "Cost of this choice: the click no longer carries the account's Amazon Attribution maas tag, so Amazon-side attribution for this campaign is lost. Accepted because the on-site funnel is the thing being tested and the Google-side signal is worth more for a Max Clicks test. To get both, generate a per-campaign Amazon Attribution tag and append it to the lander's outbound Buy on Amazon link.",
   "adGroups": [
     {
       "name": "Tired - Low Energy",
