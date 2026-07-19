@@ -1,0 +1,192 @@
+{
+  "client": "Sunbooster (SunLED)",
+  "account": {"platform": "google", "accountId": "2343884684", "currency": "EUR", "adkitProjectId": "6a561e973ca55cd84d468f4c"},
+  "goal": "Non-brand test: low-energy / lack-of-sunlight demand (client call note, Jul 2026). Traffic ASAP, keywords presentable Tuesday.",
+  "campaign": {
+    "name": "SunBooster | Search | NB | Low Energy | US | 2026-07",
+    "campaignType": "search",
+    "status_at_launch": "paused, enabled after verification per Nick's traffic-ASAP instruction",
+    "budget_daily_eur": 87,
+    "budget_note": "~$100/day at EUR/USD 1.1446 (Jul 19 2026)",
+    "bidStrategy": "maximize_clicks",
+    "cpc_ceiling": "none (per Nick)",
+    "searchPartners": false,
+    "displayNetwork": false,
+    "geo": {"include": "United States", "targetType": "PRESENCE"}
+  },
+  "finalUrl": "https://www.amazon.com/SunBooster-SLS2020-Near-Infrared-Therapy-Technology/dp/B0GTQ5563H?maas=maas_adg_E0EAA9032FF02C3844AAF2B28644385E_afap_abs&ref_=aa_maas&tag=maas",
+  "finalUrl_note": "Same Amazon Attribution URL as the live NB NIR Device campaign - keeps all account traffic measurable in Amazon Attribution. For per-campaign attribution, generate a new maas tag in Amazon Ads console and swap.",
+  "adGroups": [
+    {
+      "name": "Tired - Low Energy",
+      "theme": "Symptom intent: people telling Google they are tired / drained / out of energy",
+      "path": ["SunBooster", "More-Energy"],
+      "keywords": [
+        {"text": "why am i so tired all the time", "matchType": "phrase", "volume": 49500},
+        {"text": "why am i so fatigued", "matchType": "phrase", "volume": 33100},
+        {"text": "why am i always tired", "matchType": "phrase", "volume": 27100},
+        {"text": "why am i constantly tired", "matchType": "phrase", "volume": 27100},
+        {"text": "tired all the time", "matchType": "phrase", "volume": 12100},
+        {"text": "exhausted all the time", "matchType": "phrase", "volume": 12100},
+        {"text": "feeling tired all the time", "matchType": "phrase", "volume": 6600},
+        {"text": "always tired and no energy", "matchType": "phrase", "volume": 1900},
+        {"text": "wake up tired", "matchType": "phrase", "volume": 3600},
+        {"text": "how to stop feeling tired", "matchType": "phrase", "volume": 1600},
+        {"text": "how to get more energy", "matchType": "phrase", "volume": 3600},
+        {"text": "natural energy booster", "matchType": "phrase", "volume": 6600},
+        {"text": "why am i so tired all the time", "matchType": "exact", "volume": 49500},
+        {"text": "tired all the time", "matchType": "exact", "volume": 12100},
+        {"text": "exhausted all the time", "matchType": "exact", "volume": 12100},
+        {"text": "always tired no energy", "matchType": "exact", "volume": 1900},
+        {"text": "why am i so fatigued", "matchType": "exact", "volume": 33100}
+      ],
+      "rsa": {
+        "headlines": [
+          {"text": "Always Tired At Your Desk?", "pin": 1},
+          {"text": "Your Office Lacks Sunlight"},
+          {"text": "More Energy, No Caffeine"},
+          {"text": "850nm Near-Infrared Light"},
+          {"text": "SunBooster on Amazon"},
+          {"text": "Beat the Afternoon Slump"},
+          {"text": "Feel Energized All Day"},
+          {"text": "The Part of Sunlight You Miss"},
+          {"text": "Clips On Your Monitor"},
+          {"text": "Eye-Safe, UV-Free Light"},
+          {"text": "Patented SunLED Technology"},
+          {"text": "Free Delivery on Amazon"},
+          {"text": "Free 30-Day Returns"},
+          {"text": "Works While You Work"},
+          {"text": "A TIME Best Invention"}
+        ],
+        "descriptions": [
+          {"text": "Over a third of sunlight is near-infrared light. Indoors, you get almost none of it."},
+          {"text": "SunBooster clips on your monitor and delivers 850nm near-infrared light while you work."},
+          {"text": "Tired by 2pm? Restore the light your body misses indoors for steady all-day energy."},
+          {"text": "Ships from Amazon with free delivery and free 30-day returns. Get SunBooster for $249."}
+        ]
+      }
+    },
+    {
+      "name": "Lack of Sunlight",
+      "theme": "Cause intent: people connecting how they feel to not getting sunlight (the client's exact ask)",
+      "path": ["SunBooster", "Sunlight"],
+      "keywords": [
+        {"text": "lack of sunlight", "matchType": "phrase", "volume": 260},
+        {"text": "not getting enough sunlight", "matchType": "phrase", "volume": 40},
+        {"text": "effects of lack of sunlight", "matchType": "phrase", "volume": 110},
+        {"text": "indoor sunlight", "matchType": "phrase", "volume": 170},
+        {"text": "indoor lighting that mimics sunlight", "matchType": "phrase", "volume": 140},
+        {"text": "working indoors all day", "matchType": "phrase", "volume": null},
+        {"text": "lack of sunlight", "matchType": "exact", "volume": 260},
+        {"text": "not enough sunlight", "matchType": "exact", "volume": 30},
+        {"text": "effects of lack of sunlight", "matchType": "exact", "volume": 110},
+        {"text": "sunlight deficiency", "matchType": "phrase", "volume": 140, "note": "published solo - most condition-like string, isolated so a policy rejection cannot kill the batch"},
+        {"text": "sunlight deficiency", "matchType": "exact", "volume": 140, "note": "published solo"}
+      ],
+      "rsa": {
+        "headlines": [
+          {"text": "Not Getting Enough Sunlight?", "pin": 1},
+          {"text": "Windows Block Near-Infrared"},
+          {"text": "Bring Sunlight Indoors"},
+          {"text": "Sunlight for Your Workday"},
+          {"text": "The Part of Sunlight You Miss"},
+          {"text": "850nm Near-Infrared Light"},
+          {"text": "SunBooster on Amazon"},
+          {"text": "No Bulky Panels Needed"},
+          {"text": "Clips On Your Monitor"},
+          {"text": "Tracks Your Light Intake"},
+          {"text": "Eye-Safe, UV-Free Light"},
+          {"text": "Patented SunLED Technology"},
+          {"text": "Free Delivery on Amazon"},
+          {"text": "Free 30-Day Returns"},
+          {"text": "Just 2-4 Hours a Day"}
+        ],
+        "descriptions": [
+          {"text": "Modern life filters out near-infrared light. SunBooster brings it back to your desk."},
+          {"text": "Over a third of sunlight is near-infrared light. Indoors, you get almost none of it."},
+          {"text": "Compact and USB-C powered, with smart sensors that track your daily light intake."},
+          {"text": "Ships from Amazon with free delivery and free 30-day returns. Get SunBooster for $249."}
+        ]
+      }
+    },
+    {
+      "name": "Sun Lamp Alternatives",
+      "theme": "Solution intent: shopping for sunlight lamps / happy lights - SunBooster as the smarter NIR alternative",
+      "path": ["SunBooster", "Sun-Lamp"],
+      "keywords": [
+        {"text": "sunlight lamp", "matchType": "phrase", "volume": 18100},
+        {"text": "happy light", "matchType": "phrase", "volume": 18100},
+        {"text": "artificial sunlight", "matchType": "phrase", "volume": 2400},
+        {"text": "sunlight simulator", "matchType": "phrase", "volume": 1600},
+        {"text": "natural sunlight lamp", "matchType": "phrase", "volume": 1600},
+        {"text": "sun lamp for office", "matchType": "phrase", "volume": 260},
+        {"text": "desk sun lamp", "matchType": "phrase", "volume": 260},
+        {"text": "light for night shift workers", "matchType": "phrase", "volume": null},
+        {"text": "sunlight lamp", "matchType": "exact", "volume": 18100},
+        {"text": "happy light", "matchType": "exact", "volume": 18100},
+        {"text": "happy lamp", "matchType": "exact", "volume": 18100},
+        {"text": "artificial sunlight", "matchType": "exact", "volume": 2400},
+        {"text": "sunlight simulator", "matchType": "exact", "volume": 1600},
+        {"text": "sunlamp", "matchType": "exact", "volume": 1600}
+      ],
+      "rsa": {
+        "headlines": [
+          {"text": "A Smarter Kind of Sun Lamp", "pin": 1},
+          {"text": "Not Another Bright Lamp"},
+          {"text": "Invisible 850nm Light"},
+          {"text": "Near-Infrared Desk Light"},
+          {"text": "Sunlight, Without the Sun"},
+          {"text": "SunBooster on Amazon"},
+          {"text": "Clips On Your Monitor"},
+          {"text": "No Bulky Panels Needed"},
+          {"text": "Tracks Your Light Intake"},
+          {"text": "Eye-Safe, UV-Free Light"},
+          {"text": "Patented SunLED Technology"},
+          {"text": "Free Delivery on Amazon"},
+          {"text": "Free 30-Day Returns"},
+          {"text": "Boost Mood, Energy & Focus"},
+          {"text": "Just 2-4 Hours a Day"}
+        ],
+        "descriptions": [
+          {"text": "Skip the harsh white glare. SunBooster works with invisible 850nm near-infrared light."},
+          {"text": "SunBooster restores the near-infrared light your body misses indoors."},
+          {"text": "Clips on your monitor. Smart sensors track your light intake and pause when you leave."},
+          {"text": "Ships from Amazon with free delivery and free 30-day returns. $249, USB-C powered."}
+        ]
+      }
+    }
+  ],
+  "negativeList": {
+    "name": "SunBooster | NB | Low Energy | Negatives",
+    "matchType": "phrase",
+    "keywords": [
+      "solar", "outdoor", "garden", "patio", "christmas", "fairy lights", "street", "driveway", "landscape", "yard", "security", "flood light", "motion sensor",
+      "plants", "plant", "grow light", "aquarium", "reptile", "terrarium", "chicken", "pet", "dog", "cat", "baby",
+      "tanning", "uv lamp", "uv light", "uvb lamp", "uvb light", "nail",
+      "depression", "sad", "seasonal affective", "anxiety", "adhd", "thyroid", "anemia", "diabetes", "pregnancy", "pregnant", "narcolepsy", "sleep apnea", "chronic fatigue syndrome", "fibromyalgia",
+      "supplement", "supplements", "pills", "gummies", "b12", "iron", "magnesium", "creatine", "caffeine pills", "energy drink", "energy drinks", "pre workout", "adderall",
+      "lyrics", "song", "meaning", "quotes", "reddit", "definition",
+      "diy", "how to make", "rental", "jobs", "hiring", "salary",
+      "bulb", "bulbs",
+      "verilux", "sperti", "philips", "carex", "vitamin d"
+    ],
+    "notes": [
+      "solar/outdoor cluster: Keyword Planner showed sun lamp seeds pulling solar garden-light queries",
+      "medical cluster: keeps a wellness device out of medical-condition queries (policy + positioning)",
+      "vitamin d: deliberately excluded everywhere - SunBooster is 850nm NIR, produces no vitamin D (needs UVB); cannot serve that intent honestly",
+      "sad: also blocks 'sad lamp' queries - deliberate, same medical-positioning call",
+      "competitor brands negatived to keep the test readable; conquesting is a possible phase 2"
+    ]
+  },
+  "assets": {
+    "callouts": ["Free Delivery on Amazon", "Free 30-Day Returns", "Patented SunLED Tech", "850nm Near-Infrared", "Eye-Safe, UV-Free", "USB-C Powered"],
+    "structuredSnippet": {"header": "Types", "values": ["Near-Infrared Light", "Clip-On Desk Device", "UV-Free Light", "USB-C Powered"]}
+  },
+  "excluded_keyword_families": [
+    {"family": "vitamin d lamp (4,400/mo), vitamin d light (1,900/mo), sun lamp vitamin d (1,600/mo), uvb light for vitamin d (1,300/mo)", "reason": "Product emits 850nm NIR only - no UVB, so it cannot trigger vitamin D synthesis. Buying this traffic would be dishonest and would convert terribly on the Amazon listing."},
+    {"family": "sad lamp / sun lamp for seasonal depression (2,900/mo) / lamp for depression (1,300/mo)", "reason": "Medical-condition territory: Google health policy risk (this account has past disapprovals on old sunlight campaigns) plus a claim the brand cannot make."},
+    {"family": "sleepy cluster (why am i so sleepy 4,400/mo etc.)", "reason": "Leans sleep-disorder/medical rather than energy; weaker product fit. Revisit if the tired cluster wins."},
+    {"family": "morning light therapy (170/mo)", "reason": "REJECTED at publish by Google policy classifier BIRTH_CONTROL ('morning' read as morning-after pill). Exemptible in theory, but no exemption flow via API - dropped. Batch republished without it."},
+    {"family": "verilux / sperti / philips wake up light (5,400 + 1,900/mo)", "reason": "Competitor conquesting - worth a dedicated phase-2 test, kept out of a clean first read."}
+  ]
+}
